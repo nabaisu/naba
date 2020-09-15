@@ -7,9 +7,10 @@ module.exports = function(config) {
         ],
         preprocessors: {
             'test/**/*.js': ['jshint', 'browserify'],
-            'src/**/*.js': ['jshint', 'browserify', 'coverage']
+            'src/**/*.js': ['jshint', 'browserify'], // 'coverage']
         },
         browsers: ['PhantomJS'],
+        /*
         reporters: ['coverage', 'coveralls'],
           // optionally, configure the reporter
           coverageReporter: {
@@ -21,6 +22,7 @@ module.exports = function(config) {
                 { type: 'lcov' }
             ]
           },
+        */
         browserify: {
         debug: true
         }
