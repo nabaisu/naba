@@ -1,0 +1,19 @@
+{
+  "name": "naba",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nabaisu/naba.git"
+  },
+  "author": "joao nabais",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nabaisu/naba/issues"
+  },
+  "homepage": "https://github.com/nabaisu/naba#readme"
+}
