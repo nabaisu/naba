@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "karma start",
+    "test": "karma start  --single-run",
+    "t": "karma start",
     "lint": "jshint src test"
   },
   "repository": {
