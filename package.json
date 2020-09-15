@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "karma start",
+    "test": "karma start --single-run",
+    "t": "karma start",
     "lint": "jshint src test"
   },
   "repository": {
@@ -19,6 +20,7 @@
   "homepage": "https://github.com/nabaisu/naba#readme",
   "devDependencies": {
     "browserify": "^16.5.2",
+    "coveralls": "^3.1.0",
     "jasmine-core": "^3.6.0",
     "jshint": "^2.12.0",
     "karma": "^5.2.2",
@@ -28,8 +30,5 @@
     "karma-phantomjs-launcher": "^1.0.4",
     "phantomjs-prebuilt": "^2.1.16",
     "watchify": "^3.11.1"
-  },
-  "dependencies": {
-    "lodash": "^4.17.20"
   }
 }
