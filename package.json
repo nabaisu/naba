@@ -1,10 +1,11 @@
 {
   "name": "naba",
-  "version": "1.0.1",
+  "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\""
+    "test": "karma start",
+    "lint": "jshint src test"
   },
   "repository": {
     "type": "git",
@@ -15,5 +16,20 @@
   "bugs": {
     "url": "https://github.com/nabaisu/naba/issues"
   },
-  "homepage": "https://github.com/nabaisu/naba#readme"
+  "homepage": "https://github.com/nabaisu/naba#readme",
+  "devDependencies": {
+    "browserify": "^16.5.2",
+    "jasmine-core": "^3.6.0",
+    "jshint": "^2.12.0",
+    "karma": "^5.2.2",
+    "karma-browserify": "^7.0.0",
+    "karma-jasmine": "^4.0.1",
+    "karma-jshint-preprocessor": "0.0.6",
+    "karma-phantomjs-launcher": "^1.0.4",
+    "phantomjs-prebuilt": "^2.1.16",
+    "watchify": "^3.11.1"
+  },
+  "dependencies": {
+    "lodash": "^4.17.20"
+  }
 }
