@@ -6,8 +6,8 @@ module.exports = function(config) {
         'test/**/*_spec.js'
         ],
         preprocessors: {
-            'test/**/*.js': ['jshint', 'browserify'],
-            'src/**/*.js': ['jshint', 'browserify'], // 'coverage']
+            'test/**/*.js': ['browserify'],//, 'jshint'],
+            'src/**/*.js': ['browserify'],//, 'jshint', 'coverage'],
         },
         browsers: ['PhantomJS'],
         /*
