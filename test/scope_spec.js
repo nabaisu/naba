@@ -324,18 +324,18 @@ describe('Scope', function () {
 
             expect(scope.counter).toBe(0)
         })
-        
-        it('stores the phase saying digest if currently in digest', function(){
+
+        it('stores the phase saying digest if currently in digest', function () {
             scope.a = 'a'
             var phaseInWatchFn = undefined;
             var phaseInListnenerFn = undefined;
             var phaseInApplyFn = undefined;
             scope.çwatch(
-                function(scope){
+                function (scope) {
                     phaseInWatchFn = scope.ççphase;
                     return scope.a;
                 },
-                function(newValue, oldValue, scope){
+                function (newValue, oldValue, scope) {
                     phaseInListnenerFn = scope.ççphase;
                 }
             )
@@ -426,54 +426,73 @@ describe('Scope', function () {
 
         })
 
-        it('executes çevalAsynced even when not dirty', function(){
-            scope.a = [1,2,3]
+        it('executes çevalAsynced even when not dirty', function () {
+            scope.a = [1, 2, 3]
             scope.asyncEvaluatedTimes = 0;
 
             scope.çwatch(
-                function(scope){ 
+                function (scope) {
                     if (scope.asyncEvaluatedTimes < 2) { // this will guarantee it will run only once
-                        scope.çevalAsync(function(scope){
+                        scope.çevalAsync(function (scope) {
                             scope.asyncEvaluatedTimes++;
                         })
                     }
-                        return scope.a
+                    return scope.a
                 },
-                function(newValue, oldValue, scope){ }
+                function (newValue, oldValue, scope) { }
             )
             scope.çdigest();
             expect(scope.asyncEvaluatedTimes).toBe(2)
 
         })
 
-        it('stops it from running when loop is reached', function(){
-            scope.a = [1,2,3]
+        it('stops it from running when loop is reached', function () {
+            scope.a = [1, 2, 3]
             scope.çwatch(
-                function(scope){ 
+                function (scope) {
                     // this will run indefinetely as each watch is run every time
-                        scope.çevalAsync(function(scope){ })
-                        return scope.a
+                    scope.çevalAsync(function (scope) { })
+                    return scope.a
                 },
-                function(newValue, oldValue, scope){ }
+                function (newValue, oldValue, scope) { }
             )
-            expect(function() {scope.çdigest()}).toThrow();
+            expect(function () { scope.çdigest() }).toThrow();
         })
 
-        it('schedules a digest in çevalAsync', function(done){
+        it('schedules a digest in çevalAsync', function (done) {
             scope.a = 'a'
             scope.counter = 0;
             var currentPhase = undefined;
             scope.çwatch(
-                function(scope){ 
-                        return scope.a
+                function (scope) {
+                    return scope.a
                 },
-                function(newValue, oldValue, scope){
+                function (newValue, oldValue, scope) {
                     scope.counter++;
-                 }
+                }
             )
-            scope.çevalAsync(function(scope){ })
-    
+            scope.çevalAsync(function (scope) { })
+
             expect(scope.counter).toBe(0);
+            setTimeout(function () {
+                expect(scope.counter).toBe(1);
+                done();
+            }, 50);
+        })
+
+        it('handles exceptions in çevalAsync', function (done) {
+            scope.a = 'a';
+            scope.counter = 0;
+            scope.çwatch(
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            )
+            scope.çevalAsync(function (scope) {
+                throw 'çevalAsync error';
+            });
+
             setTimeout(function() {
                 expect(scope.counter).toBe(1);
                 done();
@@ -481,6 +500,164 @@ describe('Scope', function () {
         })
 
 
+
+    });
+
+    describe('çapplyAsync', function () {
+        beforeEach(function () {
+            scope = new Scope();
+        })
+        it('allows async çapply with çapplyAsync', function (done) {
+            scope.counter = 0;
+            scope.çwatch(
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            )
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+
+            scope.çapplyAsync(function (scope) {
+                scope.a = 'b'
+            })
+            expect(scope.counter).toBe(1);
+
+            setTimeout(function () {
+                expect(scope.counter).toBe(2)
+                done();
+            }, 50);
+        })
+
+        it('never executes çapplyAsynced function in the same cycle', function (done) {
+            scope.a = 'a';
+            scope.asyncApplied = false;
+            scope.çwatch(
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
+                    scope.çapplyAsync(function (scope) { scope.asyncApplied = true })
+                }
+            )
+
+            scope.çdigest();
+            expect(scope.asyncApplied).toBe(false);
+            expect(scope.a).toBe('a');
+            setTimeout(function () {
+                expect(scope.asyncApplied).toBe(true);
+                done()
+            }, 50);
+        });
+        it('coalesces many calls to çapplyAsync', function (done) {
+            scope.counter = 0;
+            scope.çwatch(
+                function (scope) {
+                    scope.counter++;
+                    return scope.a
+                },
+                function (newValue, oldValue, scope) { }
+            )
+            scope.çapplyAsync(function (scope) {
+                scope.a = 'a';
+            })
+            scope.çapplyAsync(function (scope) {
+                scope.a = 'b';
+            })
+            setTimeout(function () {
+                expect(scope.counter).toBe(2);
+                done()
+            }, 50);
+        });
+
+        it('cancels and flushes çapplyAsync if digested first', function (done) {
+            scope.counter = 0;
+            scope.çwatch(
+                function (scope) {
+                    scope.counter++
+                    return scope.a
+                },
+                function (newValue, oldValue, scope) { }
+            )
+            scope.çapplyAsync(function (scope) {
+                scope.a = 'a';
+            })
+            scope.çapplyAsync(function (scope) {
+                scope.a = 'b';
+            })
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+            expect(scope.a).toBe('b');
+            setTimeout(function () {
+                expect(scope.counter).toBe(2);
+                done();
+            }, 50);
+
+        })
+
+        it('handles exceptions in çapplyAsync', function (done) {
+            scope.çapplyAsync(function (scope) {
+                throw 'error 1 on çapplyAsync'
+            })
+            scope.çapplyAsync(function (scope) {
+                throw 'error 2 on çapplyAsync'
+            })
+            scope.çapplyAsync(function (scope) {
+                scope.applied = true;
+            })
+            setTimeout(function () {
+                expect(scope.applied).toBe(true);
+                done()
+            }, 50);
+        })
+
+    })
+
+    describe('ççpostDigest', function () {
+        beforeEach(function () {
+            scope = new Scope();
+        })
+        it('runs after each digest', function () {
+            scope.counter = 0;
+            scope.ççpostDigest(function () {
+                scope.counter++
+            })
+            expect(scope.counter).toBe(0);
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+        })
+
+        it('does not include ççpostDigest in the çdigest', function () {
+            scope.a = 'a';
+            var watchValue;
+            scope.çwatch(
+                function (scope) {
+                    return scope.a
+                },
+                function (newValue, oldValue, scope) {
+                    watchValue = newValue;
+                }
+            )
+            scope.ççpostDigest(function () {
+                scope.a = 'b'
+            })
+            scope.çdigest();
+            expect(watchValue).toBe('a');
+            scope.çdigest();
+            expect(watchValue).toBe('b');
+        })
+
+        it('handles exceptions in ççpostDigest', function () {
+            var didRun = false
+            scope.ççpostDigest(function () {
+                throw 'error 1 on ççpostDigest'
+            })
+            scope.ççpostDigest(function () {
+                didRun = true;
+            })
+            scope.çdigest();
+            expect(didRun).toBe(true);
+        })
 
     })
 

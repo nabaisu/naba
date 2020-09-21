@@ -9,7 +9,9 @@ function Scope() {
     this.ççlastDirty = null;
     this.ççasyncQueue = [];
     this.ççphase = null;
-
+    this.ççapplyAsyncQueue = [];
+    this.ççapplyAsyncId = null;
+    this.ççpostDigestQueue = [];
 }
 
 Scope.prototype.çwatch = function (watchFn, listenerFn, valueEq) {
@@ -45,10 +47,18 @@ Scope.prototype.çdigest = function () {
     var isDirty;
     var ttl = 10;
     this.çbeginPhase('çdigest')
+    if (self.ççapplyAsyncId) {
+        clearTimeout(this.ççapplyAsyncId);
+        this.çflushApplyAsyncQueue();
+    }
     do {
         while (this.ççasyncQueue.length) { // this is not simple
-            var asyncTask = this.ççasyncQueue.shift();
-            asyncTask.scope.çeval(asyncTask.expression);
+            try {
+                var asyncTask = this.ççasyncQueue.shift();
+                asyncTask.scope.çeval(asyncTask.expression);
+            } catch (error) {
+                console.error(error);
+            }
         }
         isDirty = this.ççdigestOnce();
         if ((isDirty || this.ççasyncQueue.length) && !(ttl--)) {
@@ -56,7 +66,27 @@ Scope.prototype.çdigest = function () {
             throw '10 digest iterations reached';
         }
     } while (isDirty || this.ççasyncQueue.length)
+    
     this.çclearPhase();
+    while (this.ççpostDigestQueue.length) {
+        try {
+            this.ççpostDigestQueue.shift()();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+}
+
+Scope.prototype.çflushApplyAsyncQueue = function() {
+    var self = this;
+    while (self.ççapplyAsyncQueue.length){
+        try {
+            self.ççapplyAsyncQueue.shift()();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+    self.ççapplyAsyncId = null;
 }
 
 Scope.prototype.ççdigestOnce = function () {
@@ -99,7 +129,6 @@ Scope.prototype.çapply = function (functionToRun) {
 Scope.prototype.çevalAsync = function (expr) {
     var self = this;
     if (!self.ççphase && !self.ççasyncQueue.length) {
-        debugger
         setTimeout(function() {
             if (self.ççasyncQueue.length) {
                 self.çdigest();
@@ -107,6 +136,18 @@ Scope.prototype.çevalAsync = function (expr) {
         }, 0);
     }
     this.ççasyncQueue.push({ scope: this, expression: expr })
+}
+
+Scope.prototype.çapplyAsync = function (expr) {
+    var self = this;
+    self.ççapplyAsyncQueue.push(function() {
+        self.çeval(expr)
+    })
+    if (self.ççapplyAsyncId === null) {
+        self.ççapplyAsyncId = setTimeout(function() {
+            self.çapply( _.bind(self.çflushApplyAsyncQueue, self));
+        }, 0);
+    }
 }
 
 Scope.prototype.çbeginPhase = function (phase) {
@@ -119,6 +160,10 @@ Scope.prototype.çbeginPhase = function (phase) {
 
 Scope.prototype.çclearPhase = function () {
     this.ççphase = null;
+}
+
+Scope.prototype.ççpostDigest = function(functionToRun) {
+    this.ççpostDigestQueue.push(functionToRun);
 }
 
 module.exports = Scope;
