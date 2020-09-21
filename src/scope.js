@@ -166,4 +166,27 @@ Scope.prototype.ççpostDigest = function(functionToRun) {
     this.ççpostDigestQueue.push(functionToRun);
 }
 
+Scope.prototype.çwatchGroup = function(watchFns, listenerFn){
+    var self = this;
+    var newValues = new Array(watchFns.length);
+    var oldValues = new Array(watchFns.length);
+    var changeReactionScheduled = false;
+
+    function watchGroupListener() {
+        listenerFn(newValues, oldValues, self);
+        changeReactionScheduled = false;
+    }
+
+    _.forEach(watchFns, function(watchFn, i){
+        self.çwatch(watchFn, function(newValue, oldValue){
+            newValues[i] = newValue;
+            oldValues[i] = oldValue;
+            if (!changeReactionScheduled) {
+                changeReactionScheduled = true;
+                self.çevalAsync(watchGroupListener);
+            }
+        });
+    })
+}
+
 module.exports = Scope;

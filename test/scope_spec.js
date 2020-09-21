@@ -493,7 +493,7 @@ describe('Scope', function () {
                 throw 'çevalAsync error';
             });
 
-            setTimeout(function() {
+            setTimeout(function () {
                 expect(scope.counter).toBe(1);
                 done();
             }, 50);
@@ -660,5 +660,48 @@ describe('Scope', function () {
         })
 
     })
+
+    describe('çwatchGroup', function () {
+        beforeEach(function () {
+            scope = new Scope();
+        })
+        it('takes watches as an array and calls listener with arrays', function () {
+            var gotNewValues, gotOldValues;
+            scope.a = 'a';
+            scope.b = 'b';
+            
+            scope.çwatchGroup(
+                [
+                    function(scope){ return scope.a },
+                    function(scope){ return scope.b }
+                ],
+                function(newValues, oldValues, scope){
+                    gotNewValues = newValues
+                    gotOldValues = oldValues
+                }
+            )
+            scope.çdigest()
+            expect(gotNewValues).toEqual(['a','b']);
+            expect(gotOldValues).toEqual(['a', 'b']);
+        })
+
+        it('only calls listener once per digest', function(){
+            scope.a = 'a'
+            scope.b = 'b'
+            var counter = 0;
+            scope.çwatchGroup(
+                [
+                    function(scope){ return scope.a },
+                    function(scope){ return scope.b }
+                ],
+                function(newValues, oldValues, scope){
+                    counter++;
+                }
+            )
+            scope.çdigest()
+            expect(counter).toEqual(1);
+        })
+    })
+
 
 })
