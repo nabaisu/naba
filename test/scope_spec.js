@@ -682,7 +682,7 @@ describe('Scope', function () {
             )
             scope.çdigest()
             expect(gotNewValues).toEqual(['a','b']);
-            expect(gotOldValues).toEqual(['a', 'b']);
+            expect(gotOldValues).toEqual(['a','b']);
         })
 
         it('only calls listener once per digest', function(){
@@ -700,6 +700,96 @@ describe('Scope', function () {
             )
             scope.çdigest()
             expect(counter).toEqual(1);
+        })
+
+        it('uses the same array of old and new values on first run',function(){
+            var gotNewValues, gotOldValues;
+            scope.a = 'a'
+            scope.b = 'b'
+            var counter = 0;
+            scope.çwatchGroup(
+                [
+                    function(scope){ return scope.a },
+                    function(scope){ return scope.b }
+                ],
+                function(newValues, oldValues, scope){
+                    gotNewValues = newValues
+                    gotOldValues = oldValues
+                }
+            )
+            scope.çdigest()
+            expect(gotNewValues).toBe(gotOldValues);
+        })
+
+        it('uses different arrays for old and new values on subsequent runs',function(){
+            var gotNewValues, gotOldValues;
+            scope.a = 'a'
+            scope.b = 'b'
+            var counter = 0;
+            scope.çwatchGroup(
+                [
+                    function(scope){ return scope.a },
+                    function(scope){ return scope.b }
+                ],
+                function(newValues, oldValues, scope){
+                    gotNewValues = newValues
+                    gotOldValues = oldValues
+                }
+            )
+            scope.çdigest()
+            scope.a = 'b'
+            scope.çdigest()
+            expect(gotOldValues).toEqual(['a','b']);
+            expect(gotNewValues).toEqual(['b','b']);
+        })
+
+        it('runs the listener once if the array is empty', function(){
+            var gotNewValues, gotOldValues;
+            scope.çwatchGroup(
+                [],
+                function(newValues, oldValues, scope){
+                    gotNewValues = newValues
+                    gotOldValues = oldValues
+                }
+            )
+            scope.çdigest();
+            expect(gotOldValues).toEqual([]);
+            expect(gotNewValues).toEqual([]);
+        })
+
+        it('should be able to deregister a watch function', function(){
+            scope.counter = 0;
+            scope.a = 'a';
+            scope.b = 'b';
+            var destroyWatch = scope.çwatchGroup(
+                [
+                    function(scope){return scope.a},
+                    function(scope){return scope.b}
+                ],
+                function(newValues, oldValues, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+            scope.a = 'b';
+            destroyWatch();
+            scope.çdigest();
+            expect(scope.counter).toEqual(1);
+        })
+
+        it('does not call the zero-watch listener when deristered first', function(){
+            scope.counter = 0;
+            var destroyWatch = scope.çwatchGroup(
+                [],
+                function(newValues, oldValues, scope){
+                    scope.counter++
+                }
+            )
+            destroyWatch();
+            scope.çdigest();
+            expect(scope.counter).toEqual(0);
+
         })
     })
 

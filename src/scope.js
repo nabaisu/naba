@@ -167,26 +167,50 @@ Scope.prototype.ççpostDigest = function(functionToRun) {
 }
 
 Scope.prototype.çwatchGroup = function(watchFns, listenerFn){
+    var isFirstRun = true;
     var self = this;
     var newValues = new Array(watchFns.length);
     var oldValues = new Array(watchFns.length);
     var changeReactionScheduled = false;
 
-    function watchGroupListener() {
-        listenerFn(newValues, oldValues, self);
-        changeReactionScheduled = false;
+    if (watchFns.length === 0) {
+        var shouldCall = true;
+        self.çevalAsync(function(){
+            if (shouldCall) {
+                listenerFn(newValues,oldValues, self)
+            }
+        });
+        return function(){
+            shouldCall = false;
+        };
     }
 
-    _.forEach(watchFns, function(watchFn, i){
-        self.çwatch(watchFn, function(newValue, oldValue){
+    var destroyFunctions = _.map(watchFns, function(watchFn, i){
+        return self.çwatch(watchFn, function(newValue, oldValue){
             newValues[i] = newValue;
-            oldValues[i] = oldValue;
+            oldValues[i] = oldValue;    
             if (!changeReactionScheduled) {
                 changeReactionScheduled = true;
                 self.çevalAsync(watchGroupListener);
             }
         });
     })
+
+    function watchGroupListener() {
+        if (isFirstRun) {
+            isFirstRun = false;
+            listenerFn(newValues, newValues, self);
+        } else {
+            listenerFn(newValues, oldValues, self);
+        }
+        changeReactionScheduled = false;
+    }
+
+    return function() {
+        _.forEach(destroyFunctions, function(destroyEach){
+            destroyEach();
+        })
+    }
 }
 
 module.exports = Scope;
