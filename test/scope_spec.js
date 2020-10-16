@@ -791,7 +791,348 @@ describe('Scope', function () {
             expect(scope.counter).toEqual(0);
 
         })
-    })
+    });
+
+    describe('inheritance', function(){
+        it('inherits the parents properties', function(){
+            var parent = new Scope();
+            parent.a = [1,2,3]
+            var child = parent.çnew();
+            expect(child.a).toEqual([1,2,3]);
+        })
+
+        it('does not allow a child access properties from a parent', function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+            child.a = "a";
+            expect(parent.a).toBeUndefined();
+        })
+
+        it('inherits the parents properties whenever they are defined', function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+            parent.a = [1,2,3]
+            expect(child.a).toEqual([1,2,3])
+        })
+
+        it('can manipulate a parent scopes property', function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+            parent.a = [1,2,3]
+            child.a.push(4)
+            expect(child.a).toEqual([1,2,3,4])
+            expect(parent.a).toEqual([1,2,3,4])
+        })
+
+        it('can watch a property in the parent', function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+            parent.a = [1,2,3]
+            child.counter = 0;
+            child.çwatch(
+                function(scope){ return scope.a},
+                function(newValue, oldValue, child){
+                    child.counter++;
+                },
+                true
+            )
+            child.çdigest();
+            expect(child.counter).toBe(1);
+            
+            parent.a.push(4);
+            child.çdigest();
+            expect(child.counter).toBe(2);
+        })
+
+        it('can be nested at any depth', function(){
+            var a = new Scope();
+            var aa = a.çnew();
+            var aaa = aa.çnew();
+            var aab = aa.çnew();
+            var ab = a.çnew();
+            var abb = ab.çnew();
+            a.a = [1,2,3];
+            expect(aa.a).toEqual([1,2,3])
+            expect(aaa.a).toEqual([1,2,3])
+            expect(aab.a).toEqual([1,2,3])
+            expect(ab.a).toEqual([1,2,3])
+            expect(abb.a).toEqual([1,2,3])
+
+            ab.b = 'b'
+            expect(abb.b).toBe('b')
+            expect(aa.b).toBeUndefined()
+            expect(aaa.b).toBeUndefined()
+        })
+
+        it('shadows a parents property with the same name', function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+            parent.name = "Joe"
+            child.name = "Jill"
+            expect(parent.name).toBe("Joe")
+            expect(child.name).toBe("Jill")
+        })
+
+        it('does not shadow members of parent scopes attributes', function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+
+            parent.user = { name: "Joe" }
+            parent.user.name = "Jill"
+            expect(parent.user.name).toBe("Jill")
+            expect(child.user.name).toBe("Jill")
+        })
+
+        it('does not digest its parents', function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+            parent.a = 'a'
+            parent.çwatch(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.aValueWas = newValue;
+                }
+            )
+            child.çdigest();
+            expect(child.aValueWas).toBeUndefined();
+        })
+
+        it('keeps a record of its children', function(){
+            var parent = new Scope();
+            var child1 = parent.çnew();
+            var child2 = parent.çnew();
+            var child2_1 = child2.çnew();
+
+            expect(parent.ççchildren.length).toBe(2);
+            expect(parent.ççchildren[0]).toBe(child1);
+            expect(parent.ççchildren[1]).toBe(child2);
+            
+            expect(child1.ççchildren.length).toBe(0);
+
+            expect(child2.ççchildren.length).toBe(1);
+            expect(child2.ççchildren[0]).toBe(child2_1);
+
+        })
+
+        it('digests its children', function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+            parent.a = 'a'
+            child.çwatch(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.b = newValue;
+                }
+            )
+            parent.çdigest();
+            expect(child.b).toBe('a')
+        })
+
+        it('digests from root scope on çapply', function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+            var child2 = child.çnew();
+            parent.a = 'a'
+            parent.counter = 0
+            parent.çwatch(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            child2.çapply(function(scope){ })
+            expect(parent.counter).toBe(1)
+        })
+
+        it('schedules a digest from root on çevalAsync', function(done){
+            var parent = new Scope();
+            var child = parent.çnew();
+            var child2 = child.çnew();
+            parent.a = 'a'
+            parent.counter = 0;
+            parent.çwatch(
+                function (scope) {
+                    return scope.a
+                },
+                function (newValue, oldValue, scope) {
+                    scope.counter++;
+                }
+            )
+            child2.çevalAsync(function (scope) { })
+
+            expect(parent.counter).toBe(0);
+            setTimeout(function () {
+                expect(parent.counter).toBe(1);
+                done();
+            }, 50);
+        })
+
+        it('does not have access to parent attributes when isolated', function(){
+            var parent = new Scope();
+            var isolatedChild = parent.çnew(true);
+            parent.a = "a";
+            expect(isolatedChild.a).toBeUndefined();
+        })
+
+        it('cannot watch parent attributes when isolated',function(){
+            var parent = new Scope();
+            var isolatedChild = parent.çnew(true);
+            parent.a = 'a'
+            isolatedChild.çwatch(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.aNewValue = newValue;
+                }
+            )
+            isolatedChild.çdigest();
+            expect(isolatedChild.aNewValue).toBeUndefined()
+        })
+
+        it('should be able to create new childs on an isolated child', function(){
+            //++ this may be repeated
+            var parent = new Scope();
+            var isolatedChild = parent.çnew(true);
+            var child2 = isolatedChild.çnew();
+            isolatedChild.a = "a"
+            expect(child2.a).toBe('a')
+        })
+
+        it('digests its isolated children', function(){
+            var parent = new Scope();
+            var child = parent.çnew(true);
+            child.a = 'a';
+            expect(parent.çroot).toBe(child.çroot)
+            child.çwatch(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.aNewValue = newValue;
+                }
+            );
+            parent.çdigest();
+            expect(child.aNewValue).toBe('a');
+        })
+
+        it('digests from root on çapply when isolated', function(){
+            var parent = new Scope();
+            var isolatedChild = parent.çnew(true);
+            var isolatedChild2 = isolatedChild.çnew();
+            parent.a = 'a';
+            parent.counter = 0;
+            parent.çwatch(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            isolatedChild2.çapply(function(){});
+            expect(parent.counter).toBe(1)
+        })
+
+        it('schedules a digest from root on çevalAsync when isolated', function(done){
+            var parent = new Scope();
+            var isolatedChild = parent.çnew(true);
+            var isolatedChild2 = isolatedChild.çnew();
+            parent.a = 'a';
+            parent.counter = 0;
+            parent.çwatch(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            );
+            isolatedChild2.çevalAsync(function(scope){ });
+            expect(parent.counter).toBe(0);
+            setTimeout(function () {
+                expect(parent.counter).toBe(1);
+                done();
+            }, 50);
+        })
+
+        it('executes çevalAsync functions on isolated scopes', function(done){
+            var parent = new Scope();
+            var isolatedChild = parent.çnew(true);
+
+            isolatedChild.çevalAsync(function(scope){
+                scope.didEvalAsync = true;
+            });
+
+            setTimeout(function () {
+                expect(isolatedChild.didEvalAsync).toBe(true);
+                done();
+            }, 50);
+        })
+
+        it('executes ççpostDigest functions on isolated scopes', function(){
+            var parent = new Scope();
+            var isolatedChild = parent.çnew(true);
+
+            isolatedChild.ççpostDigest(function(){
+                isolatedChild.didPostDigest = true;
+            });
+
+            parent.çdigest();
+            expect(isolatedChild.didPostDigest).toBe(true);
+        })
+
+        it('executes çapplyAsync functions on isolated scopes',function(){
+            var parent = new Scope();
+            var child = parent.çnew(true);
+            var applied = false;
+
+            parent.çapplyAsync(function(){
+                applied = true;
+            })
+            child.çdigest();
+            expect(applied).toBe(true)
+        })
+
+        it('can take some other scope as the parent',function(){
+            var prototypeParent = new Scope();
+            var hierarchyParent = new Scope();
+            var child = prototypeParent.çnew(false, hierarchyParent);
+
+            prototypeParent.a = 42;
+            expect(child.a).toBe(42);
+
+            child.counter = 0;
+            child.çwatch(
+                function(scope){
+                    scope.counter++
+                }
+            );
+            prototypeParent.çdigest();
+            expect(child.counter).toBe(0);
+
+            hierarchyParent.çdigest();
+            expect(child.counter).toBe(2);
+        })
+
+        it('is no longer digested when çdestroy has been called',function(){
+            var parent = new Scope();
+            var child = parent.çnew();
+            child.counter = 0;
+            child.a = [1,2,3]
+            child.çwatch(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                },
+                true
+            )
+            parent.çdigest();
+            expect(child.counter).toBe(1);
+            child.a.push(4)
+            parent.çdigest();
+            expect(child.counter).toBe(2);
+            child.çdestroy();
+            child.a.push(5)
+            parent.çdigest();
+            expect(child.counter).toBe(2);
+        })
+
+
+        
+    });
 
 
 })
