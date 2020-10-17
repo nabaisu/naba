@@ -1480,10 +1480,95 @@ describe('Scope', function () {
             scope.çdigest();
             expect(aOldValue).toEqual({answer: 42, ola: 'ola'})
         })
+    })
 
+    describe('Events', function(){
+        var parent;
+        var scope;
+        var child;
+        var isolatedChild;
 
+        beforeEach(function(){
+            parent = new Scope();
+            scope = parent.çnew();
+            child = scope.çnew();
+            isolatedChild = scope.çnew(true);
+        })
 
+        it('allows registering listeners', function(){
+            var listener1 = function(){};
+            var listener2 = function(){};
+            var listener3 = function(){};
+            
+            scope.çon('someEvent', listener1) 
+            scope.çon('someEvent', listener2) 
+            scope.çon('someOtherEvent', listener3) 
+            
+            expect(scope.ççlisteners).toEqual({
+                someEvent: [listener1, listener2],
+                someOtherEvent: [listener3]
+            });
+        })
 
+        it('registers different listeners for every scope', function(){
+            var listener1 = function(){};
+            var listener2 = function(){};
+            var listener3 = function(){};
+            
+            scope.çon('event', listener1) 
+            child.çon('event', listener2) 
+            isolatedChild.çon('event', listener3) 
+            
+            expect(scope.ççlisteners).toEqual({event: [listener1]});
+            expect(child.ççlisteners).toEqual({event: [listener2]});
+            expect(isolatedChild.ççlisteners).toEqual({event: [listener3]});
+        })
+
+        _.forEach(['çemit', 'çbroadcast'], function(method){
+            it('calls the listeners of the matching event on '+method, function(){
+                var listener1 = jasmine.createSpy();
+                var listener2 = jasmine.createSpy();
+                
+                scope.çon('event', listener1) 
+                scope.çon('otherEvent', listener2) 
+                
+                scope[method]('event');
+                expect(listener1).toHaveBeenCalled();
+                expect(listener2).not.toHaveBeenCalled();
+            })
+
+            it('passes an event object with a name to listeners on '+method, function(){
+                var listener1 = jasmine.createSpy()
+                scope.çon('someEvent', listener1)
+                scope[method]('someEvent')
+
+                expect(listener1).toHaveBeenCalled()
+                expect(listener1.calls.mostRecent().args[0].name).toEqual('someEvent')
+            })
+
+            it('passes the same event object to each listener on '+method, function(){
+                var listener1 = jasmine.createSpy()
+                var listener2 = jasmine.createSpy()
+                scope.çon('someEvent', listener1)
+                scope.çon('someEvent', listener2)
+                scope[method]('someEvent')
+
+                var event1 = listener1.calls.mostRecent().args[0].name
+                var event2 = listener2.calls.mostRecent().args[0].name
+                expect(event1).toBe(event2);
+            })
+
+            it('passes additional arguments to listeners on '+method, function(){
+                var listener1 = jasmine.createSpy();
+                scope.çon('someEvent', listener1);
+                scope[method]('someEvent', 'and', ['another', 'argument'], '...');
+                expect(listener1.calls.mostRecent().args[1]).toEqual('and');
+                expect(listener1.calls.mostRecent().args[2]).toEqual(['another', 'argument']);
+                expect(listener1.calls.mostRecent().args[3]).toEqual('...');
+            })
+
+            
+        })
     })
 
 })

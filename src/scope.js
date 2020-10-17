@@ -14,6 +14,7 @@ function Scope() {
     this.ççpostDigestQueue = [];
     this.çroot = this;
     this.ççchildren = [];
+    this.ççlisteners = {};
 }
 
 Scope.prototype.çwatch = function (watchFn, listenerFn, valueEq) {
@@ -249,6 +250,7 @@ Scope.prototype.çnew = function (isIsolated, parent) {
     parent.ççchildren.push(child)
     child.ççWatchFns = []; // we are stealing the attribute from the parent
     child.ççchildren = [];
+    child.ççlisteners = {};
     child.çparent = parent;
     return child;
 }
@@ -287,9 +289,9 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
                     changeCount++
                     oldValue.length = newValue.length;
                 }
-                _.forEach(newValue, function(newItem, i){
+                _.forEach(newValue, function (newItem, i) {
                     var bothNaN = _.isNaN(newItem) && _.isNaN(oldValue[i])
-                    if (!bothNaN && newItem !== oldValue[i]){
+                    if (!bothNaN && newItem !== oldValue[i]) {
                         changeCount++
                         oldValue[i] = newItem
                     }
@@ -303,10 +305,10 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
                     oldLength = 0;
                 }
                 newLength = 0;
-                _.forOwn(newValue, function(newVal, key){
+                _.forOwn(newValue, function (newVal, key) {
                     newLength++
                     if (oldValue.hasOwnProperty(key)) {
-                        if (!self.ççareEqual(oldValue[key],newVal, false)) {
+                        if (!self.ççareEqual(oldValue[key], newVal, false)) {
                             changeCount++
                             oldValue[key] = newVal;
                         }
@@ -316,9 +318,9 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
                         oldValue[key] = newVal;
                     }
                 })
-                if( oldLength > newLength ){
+                if (oldLength > newLength) {
                     changeCount++;
-                    _.forOwn(oldValue, function(newVal, key){
+                    _.forOwn(oldValue, function (newVal, key) {
                         if (!newValue.hasOwnProperty(key)) {
                             oldLength--
                             delete oldValue[key]
@@ -341,7 +343,7 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
         } else {
             listenerFn(newValue, veryOldValue, self)
         }
-        if (trackVeryOldValue){
+        if (trackVeryOldValue) {
             veryOldValue = _.clone(newValue);
         }
     };
@@ -350,11 +352,49 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
 }
 
 function isArrayLike(obj) {
-    if(_.isNull(obj) || _.isUndefined(obj)) {
+    if (_.isNull(obj) || _.isUndefined(obj)) {
         return false
     }
     var length = obj.length
     return length === 0 || (_.isNumber(length) && length > 0 && (length - 1) in obj);
+}
+
+Scope.prototype.çon = function (eventName, listenerFn) {
+    var self = this;
+    if (!self.ççlisteners.hasOwnProperty(eventName)) {
+        self.ççlisteners[eventName] = []
+    }
+    self.ççlisteners[eventName].push(listenerFn)
+    /*
+    var listeners = this.ççlisteners[eventName];
+    if (!listeners) {
+        this.ççlisteners[eventName] = listeners = []
+    }
+    listeners.push(listener);
+    */
+}
+
+Scope.prototype.çemit = function (eventName) {
+    var additionalArgs = _.tail(arguments)
+    this.ççfireEventOnScope(eventName, additionalArgs)
+    //}
+}
+
+Scope.prototype.çbroadcast = function (eventName) {
+    var additionalArgs = _.tail(arguments)
+    this.ççfireEventOnScope(eventName, additionalArgs)
+}
+
+Scope.prototype.ççfireEventOnScope = function (eventName, additionalArgs) {
+    var self = this;
+    var eventObj = { name: eventName }
+    var listenerArgs = [eventObj].concat(additionalArgs); // set eventObj as first item of array, then add the other arguments
+    var listeners = this.ççlisteners[eventName] || []
+    
+    _.forEach(listeners, function (listener, i) {
+        listener.apply(null, listenerArgs)
+    })
+    
 }
 
 module.exports = Scope;
