@@ -264,4 +264,39 @@ Scope.prototype.çdestroy = function(){
     this.ççWatchFns = null;
 }
 
+Scope.prototype.çwatchCollection = function(watchFn, listenerFn){
+    var self = this;
+    var newValue;
+    var oldValue;
+    var changeCount = 0;
+    var internalWatchFn = function(scope){
+        newValue = watchFn(scope);
+        
+        if (_.isObject(newValue)){
+            if (_.isArray(newValue)) {
+                if (!_.isArray(oldValue)) {
+                    changeCount++
+                    oldValue = []
+                }
+            } else {
+
+            }
+        } else {
+            
+            if (!self.ççareEqual(newValue, oldValue, false)) { // for NaNs
+                changeCount++
+            }            
+        }
+
+
+        oldValue = newValue;
+        return changeCount;
+    };
+    var internalListenerFn = function(){
+        listenerFn(newValue,oldValue,self)
+    };
+
+    return this.çwatch(internalWatchFn,internalListenerFn);
+}
+
 module.exports = Scope;

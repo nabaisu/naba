@@ -1134,5 +1134,64 @@ describe('Scope', function () {
         
     });
 
+    describe('çwatchCollection', function(){
+        var scope;
+        beforeEach(function(){
+            scope = new Scope;
+        })
+
+        it('works like a normal watch for non-collections', function(){
+            var valueProvided;
+            scope.a = 'a'
+            scope.counter = 0,
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    valueProvided = newValue
+                    scope.counter++;
+                }
+            )
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+            expect(valueProvided).toBe('a');
+            scope.a = 'b'
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+        })
+
+        it('works like a normal watch for NaNs', function(){
+            scope.a = 0/0 // or 1/"a"
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+        })
+
+        it('notices when the value becomes an array', function(){
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.arr },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest()
+            expect(scope.counter).toBe(1)
+            scope.arr = [1,2,3]
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+        })
+    })
 
 })
