@@ -268,8 +268,13 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
     var self = this;
     var newValue;
     var oldValue;
+    var oldLength;
+    var veryOldValue;
+    var isFirstCall = true;
+    var trackVeryOldValue = (listenerFn.length > 1) // number of arguments passed
     var changeCount = 0;
     var internalWatchFn = function (scope) {
+        var newLength;
         newValue = watchFn(scope);
 
         if (_.isObject(newValue)) {
@@ -280,7 +285,7 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
                 }
                 if (oldValue.length !== newValue.length) {
                     changeCount++
-                    oldValue.length = newValue.length
+                    oldValue.length = newValue.length;
                 }
                 _.forEach(newValue, function(newItem, i){
                     var bothNaN = _.isNaN(newItem) && _.isNaN(oldValue[i])
@@ -291,21 +296,54 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
                 })
 
             } else {
-
+                // is an object but not an array
+                if (!_.isObject(oldValue) || isArrayLike(oldValue)) {
+                    changeCount++
+                    oldValue = {}
+                    oldLength = 0;
+                }
+                newLength = 0;
+                _.forOwn(newValue, function(newVal, key){
+                    newLength++
+                    if (oldValue.hasOwnProperty(key)) {
+                        if (!self.ççareEqual(oldValue[key],newVal, false)) {
+                            changeCount++
+                            oldValue[key] = newVal;
+                        }
+                    } else {
+                        changeCount++
+                        oldLength++
+                        oldValue[key] = newVal;
+                    }
+                })
+                if( oldLength > newLength ){
+                    changeCount++;
+                    _.forOwn(oldValue, function(newVal, key){
+                        if (!newValue.hasOwnProperty(key)) {
+                            oldLength--
+                            delete oldValue[key]
+                        }
+                    })
+                }
             }
         } else {
-
             if (!self.ççareEqual(newValue, oldValue, false)) { // for NaNs
                 changeCount++
             }
             oldValue = newValue;
         }
-
-
         return changeCount;
     };
     var internalListenerFn = function () {
-        listenerFn(newValue, oldValue, self)
+        if (isFirstCall) {
+            listenerFn(newValue, newValue, self)
+            isFirstCall = false;
+        } else {
+            listenerFn(newValue, veryOldValue, self)
+        }
+        if (trackVeryOldValue){
+            veryOldValue = _.clone(newValue);
+        }
     };
 
     return this.çwatch(internalWatchFn, internalListenerFn);
@@ -316,7 +354,7 @@ function isArrayLike(obj) {
         return false
     }
     var length = obj.length
-    return _.isNumber(length)
+    return length === 0 || (_.isNumber(length) && length > 0 && (length - 1) in obj);
 }
 
 module.exports = Scope;

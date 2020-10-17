@@ -1321,6 +1321,168 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
+        it('notices when the value becomes an object', function(){
+            scope.a = 'a'
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+            scope.a = {name: 'ola'}
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+        })
+
+        it('detects if there is a new property', function(){
+            scope.a = {name: 'a'}
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+            scope.a.ola = 'ola'
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+        })
+
+        it('notices when an atribute is changed in an object', function(){
+            scope.a = {name: 'a'}
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+            scope.a.name = 'ola'
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+        })
+
+        it('does not fail on NaN attributes in objects', function(){
+            scope.a = {name: 0/0}
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+        })
+
+        it('notices when an attribute is removed from an object', function(){
+            scope.a = {name: 'a'}
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest();
+            expect(scope.counter).toBe(1);
+            delete scope.a.name
+            scope.çdigest();
+            expect(scope.counter).toBe(2); 
+            scope.çdigest();
+            expect(scope.counter).toBe(2); 
+        })
+
+        it('does not consider any object with a length property an array', function(){
+            scope.a = {length: 42, otherKey: 'abc'}
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest();
+            scope.a.newKey = 'ola'
+            scope.çdigest();
+            expect(scope.counter).toBe(2);
+        })
+
+        it('gives the old non-collection value to listeners', function(){
+            scope.a = 42;
+            var aOldValue;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    aOldValue = oldValue;
+                }
+            )
+            scope.çdigest();
+            scope.a = 43
+            scope.çdigest();
+            expect(aOldValue).toEqual(42)
+        })
+
+        it('gives the old array value to listeners', function(){
+            scope.a = [42];
+            var aOldValue;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    aOldValue = oldValue;
+                }
+            )
+            scope.çdigest();
+            scope.a.push(43)
+            scope.çdigest();
+            expect(aOldValue).toEqual([42])
+        })
+
+        it('gives the old object value to listeners', function(){
+            scope.a = {answer: 42, ola: 'ola'};
+            var aOldValue;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    aOldValue = oldValue;
+                }
+            )
+            scope.çdigest();
+            scope.a.ola = 'adeus'
+            scope.çdigest();
+            expect(aOldValue).toEqual({answer: 42, ola: 'ola'})
+        })
+
+        it('uses the new value as the old value on first digest', function(){
+            scope.a = {answer: 42, ola: 'ola'};
+            var aOldValue;
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    aOldValue = oldValue;
+                }
+            )
+            scope.çdigest();
+            expect(aOldValue).toEqual({answer: 42, ola: 'ola'})
+        })
+
+
+
 
     })
 
