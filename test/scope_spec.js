@@ -1192,6 +1192,136 @@ describe('Scope', function () {
             scope.çdigest();
             expect(scope.counter).toBe(2);
         })
+
+        it('notices an item added to an array',function(){
+            scope.a = [1]
+            scope.counter = 0
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+            scope.a.push(2)
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+
+
+        })
+
+        it('notices an item is removed from an array',function(){
+            scope.a = [1,2]
+            scope.counter = 0
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+            scope.a.shift()
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+        })
+
+        it('notices an item replaced in an array',function(){
+            scope.a = [3,2,1]
+            scope.counter = 0
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+            scope.a[1] = 42
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+        })
+
+        it('notices items reordered in an array',function(){
+            scope.a = [3,2,1]
+            scope.counter = 0
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+            scope.a.sort()
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+        })
+
+        it('does not fail on NaNs in array',function(){
+            scope.a = [3, 0/0, 1]
+            scope.counter = 0
+            scope.çwatchCollection(
+                function(scope){ return scope.a },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+        })
+
+        it('handles array like objects', function(){
+            (function(){
+                scope.arrayLike = arguments
+            })(1,2,3)
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.arrayLike },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+            scope.arrayLike[1] = 5
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+        })
+
+        it('notices an item replaced in a NodeList Object', function(){
+            document.documentElement.appendChild(document.createElement('div'))
+            scope.arrayLike = document.getElementsByTagName('div')
+            scope.counter = 0;
+            scope.çwatchCollection(
+                function(scope){ return scope.arrayLike },
+                function(newValue, oldValue, scope){
+                    scope.counter++
+                }
+            )
+            scope.çdigest()
+            expect(scope.counter).toBe(1);
+            document.documentElement.appendChild(document.createElement('div'))
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+            scope.çdigest()
+            expect(scope.counter).toBe(2);
+        })
+
+
     })
 
 })

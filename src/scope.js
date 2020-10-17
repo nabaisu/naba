@@ -233,8 +233,8 @@ Scope.prototype.çwatchGroup = function (watchFns, listenerFn) {
 }
 
 Scope.prototype.çnew = function (isIsolated, parent) {
-   var child;
-   parent = parent || this;
+    var child;
+    parent = parent || this;
     if (isIsolated) {
         child = new Scope();
         child.çroot = parent.çroot;
@@ -253,7 +253,7 @@ Scope.prototype.çnew = function (isIsolated, parent) {
     return child;
 }
 
-Scope.prototype.çdestroy = function(){
+Scope.prototype.çdestroy = function () {
     if (this.çparent) {
         var siblings = this.çparent.ççchildren;
         var indexOfThis = siblings.indexOf(this);
@@ -264,39 +264,59 @@ Scope.prototype.çdestroy = function(){
     this.ççWatchFns = null;
 }
 
-Scope.prototype.çwatchCollection = function(watchFn, listenerFn){
+Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
     var self = this;
     var newValue;
     var oldValue;
     var changeCount = 0;
-    var internalWatchFn = function(scope){
+    var internalWatchFn = function (scope) {
         newValue = watchFn(scope);
-        
-        if (_.isObject(newValue)){
-            if (_.isArray(newValue)) {
+
+        if (_.isObject(newValue)) {
+            if (isArrayLike(newValue)) {
                 if (!_.isArray(oldValue)) {
                     changeCount++
                     oldValue = []
                 }
+                if (oldValue.length !== newValue.length) {
+                    changeCount++
+                    oldValue.length = newValue.length
+                }
+                _.forEach(newValue, function(newItem, i){
+                    var bothNaN = _.isNaN(newItem) && _.isNaN(oldValue[i])
+                    if (!bothNaN && newItem !== oldValue[i]){
+                        changeCount++
+                        oldValue[i] = newItem
+                    }
+                })
+
             } else {
 
             }
         } else {
-            
+
             if (!self.ççareEqual(newValue, oldValue, false)) { // for NaNs
                 changeCount++
-            }            
+            }
+            oldValue = newValue;
         }
 
 
-        oldValue = newValue;
         return changeCount;
     };
-    var internalListenerFn = function(){
-        listenerFn(newValue,oldValue,self)
+    var internalListenerFn = function () {
+        listenerFn(newValue, oldValue, self)
     };
 
-    return this.çwatch(internalWatchFn,internalListenerFn);
+    return this.çwatch(internalWatchFn, internalListenerFn);
+}
+
+function isArrayLike(obj) {
+    if(_.isNull(obj) || _.isUndefined(obj)) {
+        return false
+    }
+    var length = obj.length
+    return _.isNumber(length)
 }
 
 module.exports = Scope;
