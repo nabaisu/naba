@@ -1567,8 +1567,57 @@ describe('Scope', function () {
                 expect(listener1.calls.mostRecent().args[3]).toEqual('...');
             })
 
-            
+            it('returns the event object on '+method, function(){
+                var returnedEvent = scope[method]('someEvent');
+                expect(returnedEvent).toBeDefined();
+                expect(returnedEvent.name).toEqual('someEvent');
+            })
+
+            it('can be deregistered '+method, function(){
+                var listener1 = jasmine.createSpy();
+                var deregisterEvent = scope.çon('someEvent', listener1)
+                deregisterEvent();
+                scope[method]('someEvent')
+                expect(listener1).not.toHaveBeenCalled();
+            })
+
+            it('does not skip the next listener when removed on '+method, function(){
+                var deregister;
+                var listener1 = function(){
+                    deregister();
+                }
+                var listener2 = jasmine.createSpy();
+                deregister = scope.çon('someEvent', listener1)
+                scope.çon('someEvent', listener2)
+                scope[method]('someEvent')
+                expect(listener2).toHaveBeenCalled();
+            })
+        }) // both çemit and çbroadcast
+        
+        it('propagates up the scope hierarchy on çemit', function(){
+            var parentListener = jasmine.createSpy()
+            var scopeListener = jasmine.createSpy()
+            parent.çon('someEvent', parentListener)
+            scope.çon('someEvent', scopeListener)
+            scope.çemit('someEvent')
+            expect(parentListener).toHaveBeenCalled();
+            expect(scopeListener).toHaveBeenCalled();
         })
+
+        it('propagates the same event up on çemit', function(){
+            var parentListener = jasmine.createSpy();
+            var scopeListener = jasmine.createSpy();
+
+            parent.çon('someEvent', parentListener);
+            scope.çon('someEvent', scopeListener);
+
+            scope.çemit('someEvent');
+
+            var scopeEvent = scopeListener.calls.mostRecent().args[0];
+            var parentEvent = parentListener.calls.mostRecent().args[0];
+            expect(scopeEvent).toBe(parentEvent);
+        })
+    
     })
 
 })

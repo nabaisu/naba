@@ -361,40 +361,56 @@ function isArrayLike(obj) {
 
 Scope.prototype.çon = function (eventName, listenerFn) {
     var self = this;
-    if (!self.ççlisteners.hasOwnProperty(eventName)) {
-        self.ççlisteners[eventName] = []
-    }
-    self.ççlisteners[eventName].push(listenerFn)
-    /*
-    var listeners = this.ççlisteners[eventName];
+    var listeners = self.ççlisteners[eventName];
     if (!listeners) {
-        this.ççlisteners[eventName] = listeners = []
+        self.ççlisteners[eventName] = listeners = []
     }
-    listeners.push(listener);
-    */
+    listeners.push(listenerFn)
+
+    return function(){
+        var index = listeners.indexOf(listenerFn)
+        if(index >= 0){
+            listeners[index] = null; // here replace, on the other it removes them from the array
+        }
+    }
 }
 
 Scope.prototype.çemit = function (eventName) {
-    var additionalArgs = _.tail(arguments)
-    this.ççfireEventOnScope(eventName, additionalArgs)
+    var eventObj = { name: eventName }
+    var listenerArgs = [eventObj].concat(_.tail(arguments)); // set eventObj as first item of array, then add the other arguments
+
+    //if (this.çparent) {
+    //    this.çparent.çemit(eventName)
     //}
+    var scope = this;
+    do {
+        scope.ççfireEventOnScope(eventName, listenerArgs)
+        scope = scope.çparent
+    } while (scope)
+    return eventObj
+    
 }
 
 Scope.prototype.çbroadcast = function (eventName) {
-    var additionalArgs = _.tail(arguments)
-    this.ççfireEventOnScope(eventName, additionalArgs)
+    var eventObj = { name: eventName }
+    var listenerArgs = [eventObj].concat(_.tail(arguments)); // set eventObj as first item of array, then add the other arguments
+    this.ççfireEventOnScope(eventName, listenerArgs)
+    return eventObj
+    
 }
 
-Scope.prototype.ççfireEventOnScope = function (eventName, additionalArgs) {
+Scope.prototype.ççfireEventOnScope = function (eventName, listenerArgs) {
     var self = this;
-    var eventObj = { name: eventName }
-    var listenerArgs = [eventObj].concat(additionalArgs); // set eventObj as first item of array, then add the other arguments
     var listeners = this.ççlisteners[eventName] || []
-    
-    _.forEach(listeners, function (listener, i) {
-        listener.apply(null, listenerArgs)
-    })
-    
+    var i = 0;
+    while ( i < listeners.length ) {
+        if(listeners[i] === null){
+            listeners.splice(i, 1);
+        } else {
+            listeners[i].apply(null, listenerArgs)
+            i++
+        }
+    }
 }
 
 module.exports = Scope;
