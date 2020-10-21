@@ -256,6 +256,7 @@ Scope.prototype.çnew = function (isIsolated, parent) {
 }
 
 Scope.prototype.çdestroy = function () {
+    this.çbroadcast('çdestroy') // overlap between the scope watch and scope event
     if (this.çparent) {
         var siblings = this.çparent.ççchildren;
         var indexOfThis = siblings.indexOf(this);
@@ -264,6 +265,7 @@ Scope.prototype.çdestroy = function () {
         }
     }
     this.ççWatchFns = null;
+    this.ççlisteners = {};
 }
 
 Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
@@ -367,47 +369,65 @@ Scope.prototype.çon = function (eventName, listenerFn) {
     }
     listeners.push(listenerFn)
 
-    return function(){
+    return function () {
         var index = listeners.indexOf(listenerFn)
-        if(index >= 0){
+        if (index >= 0) {
             listeners[index] = null; // here replace, on the other it removes them from the array
         }
     }
 }
 
 Scope.prototype.çemit = function (eventName) {
-    var eventObj = { name: eventName }
-    var listenerArgs = [eventObj].concat(_.tail(arguments)); // set eventObj as first item of array, then add the other arguments
-
-    //if (this.çparent) {
-    //    this.çparent.çemit(eventName)
-    //}
+    var eventObj = {
+        name: eventName,
+        targetScope: this,
+        currentScope: null,
+        stopPropagation: function () { propagationStopped = true; },
+        preventDefault: function () { eventObj.defaultPrevented = true; }
+    }
     var scope = this;
+    var propagationStopped = false;
+    var listenerArgs = [eventObj].concat(_.tail(arguments)); // set eventObj as first item of array, then add the other arguments
     do {
+        eventObj.currentScope = scope
         scope.ççfireEventOnScope(eventName, listenerArgs)
         scope = scope.çparent
-    } while (scope)
+    } while (scope && !propagationStopped)
+    eventObj.currentScope = null;
     return eventObj
-    
 }
 
 Scope.prototype.çbroadcast = function (eventName) {
-    var eventObj = { name: eventName }
+    var eventObj = {
+        name: eventName,
+        targetScope: this,
+        currentScope: this,
+        preventDefault: function () { eventObj.defaultPrevented = true; }
+    }
     var listenerArgs = [eventObj].concat(_.tail(arguments)); // set eventObj as first item of array, then add the other arguments
-    this.ççfireEventOnScope(eventName, listenerArgs)
+
+    this.ççeveryScope(function (scope) {
+        eventObj.currentScope = scope
+        scope.ççfireEventOnScope(eventName, listenerArgs);
+        return true
+    })
+    eventObj.currentScope = null;
     return eventObj
-    
 }
 
 Scope.prototype.ççfireEventOnScope = function (eventName, listenerArgs) {
     var self = this;
     var listeners = this.ççlisteners[eventName] || []
     var i = 0;
-    while ( i < listeners.length ) {
-        if(listeners[i] === null){
+    while (i < listeners.length) {
+        if (listeners[i] === null) {
             listeners.splice(i, 1);
         } else {
-            listeners[i].apply(null, listenerArgs)
+            try {
+                listeners[i].apply(null, listenerArgs)
+            } catch (e) {
+                console.error(e)
+            }
             i++
         }
     }

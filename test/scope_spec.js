@@ -1592,6 +1592,36 @@ describe('Scope', function () {
                 scope[method]('someEvent')
                 expect(listener2).toHaveBeenCalled();
             })
+
+            it('sets currentScope to null after propagation on '+method, function(){
+                var event;
+                var scopeListener = function(evt){
+                    event = evt;
+                }
+                scope.çon('someEvent', scopeListener);
+                scope[method]('someEvent')
+                expect(event.currentScope).toBe(null);
+            })
+
+            it('sets defaultPrevented when preventDefault called on'+method, function(){
+                var scopeListener = function(event){
+                    event.preventDefault()
+                }
+                scope.çon('someEvent', scopeListener);
+                var event = scope[method]('someEvent')
+                expect(event.defaultPrevented).toBe(true);
+            })
+
+            it('does not stop on exceptions on '+method, function(){
+                var listener1 = function(event){throw 'error on listener on purpose'}
+                var listener2 = jasmine.createSpy();
+
+                scope.çon('someEvent', listener1)
+                scope.çon('someEvent', listener2)
+
+                scope[method]('someEvent');
+                expect(listener2).toHaveBeenCalled()
+            })
         }) // both çemit and çbroadcast
         
         it('propagates up the scope hierarchy on çemit', function(){
@@ -1616,6 +1646,166 @@ describe('Scope', function () {
             var scopeEvent = scopeListener.calls.mostRecent().args[0];
             var parentEvent = parentListener.calls.mostRecent().args[0];
             expect(scopeEvent).toBe(parentEvent);
+        })
+
+        it('propagates down the scope hierarchy on çbroadcast', function(){
+            var listener1 = jasmine.createSpy();
+            var listener2 = jasmine.createSpy();
+            var listener3 = jasmine.createSpy();
+            
+            scope.çon('someEvent', listener1)
+            child.çon('someEvent', listener2)
+            isolatedChild.çon('someEvent', listener3)
+
+            scope.çbroadcast('someEvent');
+            
+            expect(listener1).toHaveBeenCalled();
+            expect(listener2).toHaveBeenCalled();
+            expect(listener3).toHaveBeenCalled();
+        })
+
+        it('propagates the same event down on çbroadcast', function(){
+            var listener1 = jasmine.createSpy();
+            var listener2 = jasmine.createSpy();
+            
+            scope.çon('someEvent', listener1)
+            child.çon('someEvent', listener2)
+
+            scope.çbroadcast('someEvent');
+
+            var scopeEvent = listener1.calls.mostRecent().args[0]
+            var childEvent = listener2.calls.mostRecent().args[0]
+
+            expect(scopeEvent).toBe(childEvent)
+        })
+
+        it('propagates down the path recursively', function(){
+            var parentListener = jasmine.createSpy();
+            var scopeListener = jasmine.createSpy();
+            var childListener = jasmine.createSpy();
+
+            parent.çon('someEvent', parentListener);
+            scope.çon('someEvent', scopeListener);
+            child.çon('someEvent', childListener);
+
+            parent.çbroadcast('someEvent');
+
+            expect(parentListener).toHaveBeenCalled()
+            expect(scopeListener).toHaveBeenCalled()
+            expect(childListener).toHaveBeenCalled()
+        })
+
+        it('attaches targetScope on çemit', function(){
+            var parentListener = jasmine.createSpy() 
+            var scopeListener = jasmine.createSpy() 
+
+            parent.çon('someEvent', parentListener)
+            scope.çon('someEvent', scopeListener)
+            
+            scope.çemit('someEvent');
+
+            expect(parentListener.calls.mostRecent().args[0].targetScope).toBe(scope)
+            expect(scopeListener.calls.mostRecent().args[0].targetScope).toBe(scope)
+        })
+
+        it('attaches targetScope on çbroadcast', function(){
+            var parentListener = jasmine.createSpy() 
+            var scopeListener = jasmine.createSpy() 
+            var childListener = jasmine.createSpy() 
+            var isolatedChildListener = jasmine.createSpy() 
+
+            parent.çon('someEvent', parentListener)
+            scope.çon('someEvent', scopeListener)
+            child.çon('someEvent', childListener)
+            isolatedChild.çon('someEvent', isolatedChildListener)
+            
+            parent.çbroadcast('someEvent');
+
+            expect(parentListener.calls.mostRecent().args[0].targetScope).toBe(parent)
+            expect(scopeListener.calls.mostRecent().args[0].targetScope).toBe(parent)
+            expect(childListener.calls.mostRecent().args[0].targetScope).toBe(parent)
+            expect(isolatedChildListener.calls.mostRecent().args[0].targetScope).toBe(parent)
+        })
+
+        it('attaches currentScope on çemit', function(){
+            var parentResult,scopeResult;
+            var parentListener = function(event){ parentResult = event.currentScope }
+            var scopeListener = function(event){ scopeResult = event.currentScope }
+
+            parent.çon('someEvent', parentListener);
+            scope.çon('someEvent', scopeListener);
+
+            scope.çemit('someEvent');
+
+            expect(parentResult).toBe(parent)
+            expect(scopeResult).toBe(scope)
+        })
+
+        it('attaches currentScope on çemit', function(){
+            var parentResult, scopeResult, childResult, isolatedChildResult;
+            var parentListener = function(event){ parentResult = event.currentScope }
+            var scopeListener = function(event){ scopeResult = event.currentScope }
+            var childListener = function(event){ childResult = event.currentScope }
+            var isolatedChildListener = function(event){ isolatedChildResult = event.currentScope }
+
+            parent.çon('someEvent', parentListener);
+            scope.çon('someEvent', scopeListener);
+            child.çon('someEvent', childListener);
+            isolatedChild.çon('someEvent', isolatedChildListener);
+
+            parent.çbroadcast('someEvent');
+
+            expect(parentResult).toBe(parent)
+            expect(scopeResult).toBe(scope)
+            expect(childResult).toBe(child)
+            expect(isolatedChildResult).toBe(isolatedChild)
+        })
+
+        it('sets currentScope to null after propagation on çbroadcast', function(){
+            var childListener = function(event){
+                event.stopPropagation();
+            }
+            var scopeListener = jasmine.createSpy();
+            var parentListener = jasmine.createSpy();
+
+            parent.çon('someEvent', parentListener);
+            scope.çon('someEvent', scopeListener);
+            child.çon('someEvent', childListener);
+            
+            child.çemit('someEvent')
+            expect(parentListener).not.toHaveBeenCalled();
+            expect(scopeListener).not.toHaveBeenCalled();
+        })
+
+        it('fires çdestroy when destroyed', function(){
+            var listener = jasmine.createSpy()
+            scope.çon('çdestroy', listener)
+            scope.çdestroy();
+            expect(listener).toHaveBeenCalled();
+        })
+
+        it('fires çdestroy on children destroyed', function(){
+            var listener = jasmine.createSpy();
+            child.çon('çdestroy', listener)
+            scope.çdestroy()
+            expect(listener).toHaveBeenCalled();
+        })
+
+        it('no longer calls listeners after destroyed', function(){
+            var listener = jasmine.createSpy();
+            child.çon('çdestroy', function(){})
+            scope.çon('someEvent', listener)
+            scope.çdestroy()
+            child.çemit('someEvent')
+            expect(listener).not.toHaveBeenCalled();
+        })
+
+        it('extra gets the extra arguments in the listener function', function(){
+            var secondArgument;
+            var listener = function(event, outro){ secondArgument = outro }
+            scope.çon('someEvent', listener)
+            scope.çemit('someEvent', "bomdia")
+            expect(secondArgument).toBe('bomdia')
         })
     
     })
