@@ -103,10 +103,35 @@ describe('parse', function(){
         var fn = parse('false')
         expect(fn()).toBe(false);
     })
-/*
+
     it('ignores whitespaces', function(){
         var fn = parse(' \n42 ')
         expect(fn()).toEqual(42);
-    })*/
+    })
+
+    it('parses an empty array', function(){
+        var fn = parse('[]')
+        expect(fn()).toEqual([]);
+    })
+
+    it('will parse a non-empty array', function(){
+        var fn = parse('[1, "two", [3], true]')
+        expect(fn()).toEqual([1, "two", [3], true]);        
+    })
+
+    it('will parse an array with trailing comma', function(){
+        var fn = parse('[1,2,3,]')
+        expect(fn()).toEqual([1,2,3])
+    })
+
+    it('will parse an empty object', function(){
+        var fn = parse('{}')
+        expect(fn()).toEqual({})
+    })
+
+    it('will parse a non-empty object', function(){
+        var fn = parse('{"a key": 1, \'another-key\': 2}')
+        expect(fn()).toEqual({'a key': 1, 'another-key': 2})
+    })
 
 })
