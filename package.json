@@ -1,39 +1,9 @@
 {
-  "name": "naba",
-  "version": "0.1.1",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "karma start --single-run",
-    "t": "karma start",
-    "lint": "jshint src test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/nabaisu/naba.git"
-  },
-  "author": "joao nabais",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/nabaisu/naba/issues"
-  },
-  "homepage": "https://github.com/nabaisu/naba#readme",
   "devDependencies": {
-    "@babel/cli": "^7.11.6",
-    "@babel/core": "^7.11.6",
-    "@babel/node": "^7.10.5",
-    "@babel/preset-env": "^7.11.5",
-    "browserify": "^16.5.2",
-    "coveralls": "^3.1.0",
-    "jasmine-core": "^3.6.0",
-    "jshint": "^2.12.0",
-    "karma": "^5.2.2",
-    "karma-browserify": "^7.0.0",
-    "karma-jasmine": "^4.0.1",
-    "karma-jshint-preprocessor": "0.0.6",
-    "karma-phantomjs-launcher": "^1.0.4",
-    "nodemon": "^2.0.4",
-    "phantomjs-prebuilt": "^2.1.16",
-    "watchify": "^3.11.1"
+    "@babel/preset-env": "^7.12.13",
+    "jest": "*"
+  },
+  "dependencies": {
+    "lodash": "^4.17.20"
   }
 }

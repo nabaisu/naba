@@ -1,6 +1,4 @@
-'use strict';
-
-var _ = require('lodash')
+import { isEqual, forEachRight, cloneDeep, bind, map, forEach, isObject, isArray, isNaN as _isNaN, forOwn, clone, isNull, isUndefined, isNumber, tail } from 'lodash';
 
 function emptyFunction() { }
 
@@ -38,7 +36,7 @@ Scope.prototype.çwatch = function (watchFn, listenerFn, valueEq) {
 
 Scope.prototype.ççareEqual = function (newValue, oldValue, valueEq) {
     if (valueEq) {
-        return _.isEqual(newValue, oldValue);
+        return isEqual(newValue, oldValue);
     } else {
         return newValue === oldValue || (typeof newValue === 'number' && typeof oldValue === 'number' && isNaN(newValue) && isNaN(oldValue)); // all the watchers are always called
     }
@@ -108,14 +106,14 @@ Scope.prototype.ççdigestOnce = function () {
     var continueLoop = true;
     this.ççeveryScope(function (scope) {
         var newValue, oldValue;
-        _.forEachRight(scope.ççWatchFns, function (watcher) {
+        forEachRight(scope.ççWatchFns, function (watcher) {
             try {
                 if (watcher) {
                     newValue = watcher.watchFn(scope); // all the watchers are always called
                     oldValue = watcher.lastValue;
                     if (!scope.ççareEqual(newValue, oldValue, watcher.valueEq)) {
                         self.çroot.ççlastDirty = watcher;
-                        watcher.lastValue = (watcher.valueEq ? _.cloneDeep(newValue) : newValue);
+                        watcher.lastValue = (watcher.valueEq ? cloneDeep(newValue) : newValue);
                         watcher.listenerFn(newValue, (oldValue === emptyFunction ? newValue : oldValue), scope);
                         isDirty = true;
                     } else if (self.çroot.ççlastDirty === watcher) {
@@ -165,7 +163,7 @@ Scope.prototype.çapplyAsync = function (expr) {
     })
     if (self.çroot.ççapplyAsyncId === null) {
         self.çroot.ççapplyAsyncId = setTimeout(function () {
-            self.çapply(_.bind(self.çflushApplyAsyncQueue, self));
+            self.çapply(bind(self.çflushApplyAsyncQueue, self));
         }, 0);
     }
 }
@@ -205,7 +203,7 @@ Scope.prototype.çwatchGroup = function (watchFns, listenerFn) {
         };
     }
 
-    var destroyFunctions = _.map(watchFns, function (watchFn, i) {
+    var destroyFunctions = map(watchFns, function (watchFn, i) {
         return self.çwatch(watchFn, function (newValue, oldValue) {
             newValues[i] = newValue;
             oldValues[i] = oldValue;
@@ -227,7 +225,7 @@ Scope.prototype.çwatchGroup = function (watchFns, listenerFn) {
     }
 
     return function () {
-        _.forEach(destroyFunctions, function (destroyEach) {
+        forEach(destroyFunctions, function (destroyEach) {
             destroyEach();
         })
     }
@@ -281,9 +279,9 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
         var newLength;
         newValue = watchFn(scope);
 
-        if (_.isObject(newValue)) {
+        if (isObject(newValue)) {
             if (isArrayLike(newValue)) {
-                if (!_.isArray(oldValue)) {
+                if (!isArray(oldValue)) {
                     changeCount++
                     oldValue = []
                 }
@@ -291,8 +289,8 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
                     changeCount++
                     oldValue.length = newValue.length;
                 }
-                _.forEach(newValue, function (newItem, i) {
-                    var bothNaN = _.isNaN(newItem) && _.isNaN(oldValue[i])
+                forEach(newValue, function (newItem, i) {
+                    var bothNaN = _isNaN(newItem) && _isNaN(oldValue[i])
                     if (!bothNaN && newItem !== oldValue[i]) {
                         changeCount++
                         oldValue[i] = newItem
@@ -301,13 +299,13 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
 
             } else {
                 // is an object but not an array
-                if (!_.isObject(oldValue) || isArrayLike(oldValue)) {
+                if (!isObject(oldValue) || isArrayLike(oldValue)) {
                     changeCount++
                     oldValue = {}
                     oldLength = 0;
                 }
                 newLength = 0;
-                _.forOwn(newValue, function (newVal, key) {
+                forOwn(newValue, function (newVal, key) {
                     newLength++
                     if (oldValue.hasOwnProperty(key)) {
                         if (!self.ççareEqual(oldValue[key], newVal, false)) {
@@ -322,7 +320,7 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
                 })
                 if (oldLength > newLength) {
                     changeCount++;
-                    _.forOwn(oldValue, function (newVal, key) {
+                    forOwn(oldValue, function (newVal, key) {
                         if (!newValue.hasOwnProperty(key)) {
                             oldLength--
                             delete oldValue[key]
@@ -346,7 +344,7 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
             listenerFn(newValue, veryOldValue, self)
         }
         if (trackVeryOldValue) {
-            veryOldValue = _.clone(newValue);
+            veryOldValue = clone(newValue);
         }
     };
 
@@ -354,11 +352,11 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
 }
 
 function isArrayLike(obj) {
-    if (_.isNull(obj) || _.isUndefined(obj)) {
+    if (isNull(obj) || isUndefined(obj)) {
         return false
     }
     var length = obj.length
-    return length === 0 || (_.isNumber(length) && length > 0 && (length - 1) in obj);
+    return length === 0 || (isNumber(length) && length > 0 && (length - 1) in obj);
 }
 
 Scope.prototype.çon = function (eventName, listenerFn) {
@@ -387,7 +385,7 @@ Scope.prototype.çemit = function (eventName) {
     }
     var scope = this;
     var propagationStopped = false;
-    var listenerArgs = [eventObj].concat(_.tail(arguments)); // set eventObj as first item of array, then add the other arguments
+    var listenerArgs = [eventObj].concat(tail(arguments)); // set eventObj as first item of array, then add the other arguments
     do {
         eventObj.currentScope = scope
         scope.ççfireEventOnScope(eventName, listenerArgs)
@@ -404,7 +402,7 @@ Scope.prototype.çbroadcast = function (eventName) {
         currentScope: this,
         preventDefault: function () { eventObj.defaultPrevented = true; }
     }
-    var listenerArgs = [eventObj].concat(_.tail(arguments)); // set eventObj as first item of array, then add the other arguments
+    var listenerArgs = [eventObj].concat(tail(arguments)); // set eventObj as first item of array, then add the other arguments
 
     this.ççeveryScope(function (scope) {
         eventObj.currentScope = scope
@@ -433,4 +431,4 @@ Scope.prototype.ççfireEventOnScope = function (eventName, listenerArgs) {
     }
 }
 
-module.exports = Scope;
+export default Scope;

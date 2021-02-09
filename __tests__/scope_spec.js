@@ -1,7 +1,7 @@
 'use strict';
 
-var Scope = require('../src/scope')
-var _ = require('lodash')
+import Scope from '../src/scope';
+import { range, times, forEach } from 'lodash';
 var scope;
 
 describe('Scope', function () {
@@ -19,7 +19,7 @@ describe('Scope', function () {
 
         it('lets create a çwatch and çdigest', function () {
             var watchFn = function () { return "a" }
-            var listenerFn = jasmine.createSpy();
+            var listenerFn = jest.fn();
 
             scope.çwatch(watchFn, listenerFn)
             scope.çdigest()
@@ -27,7 +27,7 @@ describe('Scope', function () {
             expect(listenerFn).toHaveBeenCalled()
         })
         it('calls the watch function with the scope as the argument', function () {
-            var watchFn = jasmine.createSpy();
+            var watchFn = jest.fn();
             var listenerFn = function () { }
 
             scope.çwatch(watchFn, listenerFn)
@@ -79,7 +79,7 @@ describe('Scope', function () {
         })
 
         it('may have watchers that omit the listener function', function () {
-            var watchFn = jasmine.createSpy().and.returnValue('a');;
+            var watchFn = jest.fn(() => 'a');;
             scope.çwatch(watchFn);
             scope.çdigest();
             expect(watchFn).toHaveBeenCalled();
@@ -129,9 +129,9 @@ describe('Scope', function () {
         });
 
         it('ends the digest when the last watch is clean', function () {
-            scope.array = _.range(100);
+            scope.array = range(100);
             var watchExecutions = 0;
-            _.times(100, function (index) {
+            times(100, function (index) {
                 scope.çwatch(
                     function (scope) {
                         watchExecutions++;
@@ -1524,10 +1524,10 @@ describe('Scope', function () {
             expect(isolatedChild.ççlisteners).toEqual({event: [listener3]});
         })
 
-        _.forEach(['çemit', 'çbroadcast'], function(method){
+        forEach(['çemit', 'çbroadcast'], function(method){
             it('calls the listeners of the matching event on '+method, function(){
-                var listener1 = jasmine.createSpy();
-                var listener2 = jasmine.createSpy();
+                var listener1 = jest.fn();
+                var listener2 = jest.fn();
                 
                 scope.çon('event', listener1) 
                 scope.çon('otherEvent', listener2) 
@@ -1538,33 +1538,33 @@ describe('Scope', function () {
             })
 
             it('passes an event object with a name to listeners on '+method, function(){
-                var listener1 = jasmine.createSpy()
+                var listener1 = jest.fn()
                 scope.çon('someEvent', listener1)
                 scope[method]('someEvent')
 
                 expect(listener1).toHaveBeenCalled()
-                expect(listener1.calls.mostRecent().args[0].name).toEqual('someEvent')
+                expect(listener1.mock.calls[listener1.mock.calls.length - 1][0].name).toEqual('someEvent')
             })
 
             it('passes the same event object to each listener on '+method, function(){
-                var listener1 = jasmine.createSpy()
-                var listener2 = jasmine.createSpy()
+                var listener1 = jest.fn()
+                var listener2 = jest.fn()
                 scope.çon('someEvent', listener1)
                 scope.çon('someEvent', listener2)
                 scope[method]('someEvent')
 
-                var event1 = listener1.calls.mostRecent().args[0].name
-                var event2 = listener2.calls.mostRecent().args[0].name
+                var event1 = listener1.mock.calls[listener1.mock.calls.length - 1][0].name
+                var event2 = listener2.mock.calls[listener2.mock.calls.length - 1][0].name
                 expect(event1).toBe(event2);
             })
 
             it('passes additional arguments to listeners on '+method, function(){
-                var listener1 = jasmine.createSpy();
+                var listener1 = jest.fn();
                 scope.çon('someEvent', listener1);
                 scope[method]('someEvent', 'and', ['another', 'argument'], '...');
-                expect(listener1.calls.mostRecent().args[1]).toEqual('and');
-                expect(listener1.calls.mostRecent().args[2]).toEqual(['another', 'argument']);
-                expect(listener1.calls.mostRecent().args[3]).toEqual('...');
+                expect(listener1.mock.calls[listener1.mock.calls.length - 1][1]).toEqual('and');
+                expect(listener1.mock.calls[listener1.mock.calls.length - 1][2]).toEqual(['another', 'argument']);
+                expect(listener1.mock.calls[listener1.mock.calls.length - 1][3]).toEqual('...');
             })
 
             it('returns the event object on '+method, function(){
@@ -1574,7 +1574,7 @@ describe('Scope', function () {
             })
 
             it('can be deregistered '+method, function(){
-                var listener1 = jasmine.createSpy();
+                var listener1 = jest.fn();
                 var deregisterEvent = scope.çon('someEvent', listener1)
                 deregisterEvent();
                 scope[method]('someEvent')
@@ -1586,7 +1586,7 @@ describe('Scope', function () {
                 var listener1 = function(){
                     deregister();
                 }
-                var listener2 = jasmine.createSpy();
+                var listener2 = jest.fn();
                 deregister = scope.çon('someEvent', listener1)
                 scope.çon('someEvent', listener2)
                 scope[method]('someEvent')
@@ -1614,7 +1614,7 @@ describe('Scope', function () {
 
             it('does not stop on exceptions on '+method, function(){
                 var listener1 = function(event){throw 'error on listener on purpose'}
-                var listener2 = jasmine.createSpy();
+                var listener2 = jest.fn();
 
                 scope.çon('someEvent', listener1)
                 scope.çon('someEvent', listener2)
@@ -1625,8 +1625,8 @@ describe('Scope', function () {
         }) // both çemit and çbroadcast
         
         it('propagates up the scope hierarchy on çemit', function(){
-            var parentListener = jasmine.createSpy()
-            var scopeListener = jasmine.createSpy()
+            var parentListener = jest.fn()
+            var scopeListener = jest.fn()
             parent.çon('someEvent', parentListener)
             scope.çon('someEvent', scopeListener)
             scope.çemit('someEvent')
@@ -1635,23 +1635,23 @@ describe('Scope', function () {
         })
 
         it('propagates the same event up on çemit', function(){
-            var parentListener = jasmine.createSpy();
-            var scopeListener = jasmine.createSpy();
+            var parentListener = jest.fn();
+            var scopeListener = jest.fn();
 
             parent.çon('someEvent', parentListener);
             scope.çon('someEvent', scopeListener);
 
             scope.çemit('someEvent');
 
-            var scopeEvent = scopeListener.calls.mostRecent().args[0];
-            var parentEvent = parentListener.calls.mostRecent().args[0];
+            var scopeEvent = scopeListener.mock.calls[scopeListener.mock.calls.length - 1][0];
+            var parentEvent = parentListener.mock.calls[parentListener.mock.calls.length - 1][0];
             expect(scopeEvent).toBe(parentEvent);
         })
 
         it('propagates down the scope hierarchy on çbroadcast', function(){
-            var listener1 = jasmine.createSpy();
-            var listener2 = jasmine.createSpy();
-            var listener3 = jasmine.createSpy();
+            var listener1 = jest.fn();
+            var listener2 = jest.fn();
+            var listener3 = jest.fn();
             
             scope.çon('someEvent', listener1)
             child.çon('someEvent', listener2)
@@ -1665,24 +1665,24 @@ describe('Scope', function () {
         })
 
         it('propagates the same event down on çbroadcast', function(){
-            var listener1 = jasmine.createSpy();
-            var listener2 = jasmine.createSpy();
+            var listener1 = jest.fn();
+            var listener2 = jest.fn();
             
             scope.çon('someEvent', listener1)
             child.çon('someEvent', listener2)
 
             scope.çbroadcast('someEvent');
 
-            var scopeEvent = listener1.calls.mostRecent().args[0]
-            var childEvent = listener2.calls.mostRecent().args[0]
+            var scopeEvent = listener1.mock.calls[listener1.mock.calls.length - 1][0]
+            var childEvent = listener2.mock.calls[listener2.mock.calls.length - 1][0]
 
             expect(scopeEvent).toBe(childEvent)
         })
 
         it('propagates down the path recursively', function(){
-            var parentListener = jasmine.createSpy();
-            var scopeListener = jasmine.createSpy();
-            var childListener = jasmine.createSpy();
+            var parentListener = jest.fn();
+            var scopeListener = jest.fn();
+            var childListener = jest.fn();
 
             parent.çon('someEvent', parentListener);
             scope.çon('someEvent', scopeListener);
@@ -1696,23 +1696,23 @@ describe('Scope', function () {
         })
 
         it('attaches targetScope on çemit', function(){
-            var parentListener = jasmine.createSpy() 
-            var scopeListener = jasmine.createSpy() 
+            var parentListener = jest.fn() 
+            var scopeListener = jest.fn() 
 
             parent.çon('someEvent', parentListener)
             scope.çon('someEvent', scopeListener)
             
             scope.çemit('someEvent');
 
-            expect(parentListener.calls.mostRecent().args[0].targetScope).toBe(scope)
-            expect(scopeListener.calls.mostRecent().args[0].targetScope).toBe(scope)
+            expect(parentListener.mock.calls[parentListener.mock.calls.length - 1][0].targetScope).toBe(scope)
+            expect(scopeListener.mock.calls[scopeListener.mock.calls.length - 1][0].targetScope).toBe(scope)
         })
 
         it('attaches targetScope on çbroadcast', function(){
-            var parentListener = jasmine.createSpy() 
-            var scopeListener = jasmine.createSpy() 
-            var childListener = jasmine.createSpy() 
-            var isolatedChildListener = jasmine.createSpy() 
+            var parentListener = jest.fn() 
+            var scopeListener = jest.fn() 
+            var childListener = jest.fn() 
+            var isolatedChildListener = jest.fn() 
 
             parent.çon('someEvent', parentListener)
             scope.çon('someEvent', scopeListener)
@@ -1721,10 +1721,10 @@ describe('Scope', function () {
             
             parent.çbroadcast('someEvent');
 
-            expect(parentListener.calls.mostRecent().args[0].targetScope).toBe(parent)
-            expect(scopeListener.calls.mostRecent().args[0].targetScope).toBe(parent)
-            expect(childListener.calls.mostRecent().args[0].targetScope).toBe(parent)
-            expect(isolatedChildListener.calls.mostRecent().args[0].targetScope).toBe(parent)
+            expect(parentListener.mock.calls[parentListener.mock.calls.length - 1][0].targetScope).toBe(parent)
+            expect(scopeListener.mock.calls[scopeListener.mock.calls.length - 1][0].targetScope).toBe(parent)
+            expect(childListener.mock.calls[childListener.mock.calls.length - 1][0].targetScope).toBe(parent)
+            expect(isolatedChildListener.mock.calls[isolatedChildListener.mock.calls.length - 1][0].targetScope).toBe(parent)
         })
 
         it('attaches currentScope on çemit', function(){
@@ -1765,8 +1765,8 @@ describe('Scope', function () {
             var childListener = function(event){
                 event.stopPropagation();
             }
-            var scopeListener = jasmine.createSpy();
-            var parentListener = jasmine.createSpy();
+            var scopeListener = jest.fn();
+            var parentListener = jest.fn();
 
             parent.çon('someEvent', parentListener);
             scope.çon('someEvent', scopeListener);
@@ -1778,21 +1778,21 @@ describe('Scope', function () {
         })
 
         it('fires çdestroy when destroyed', function(){
-            var listener = jasmine.createSpy()
+            var listener = jest.fn()
             scope.çon('çdestroy', listener)
             scope.çdestroy();
             expect(listener).toHaveBeenCalled();
         })
 
         it('fires çdestroy on children destroyed', function(){
-            var listener = jasmine.createSpy();
+            var listener = jest.fn();
             child.çon('çdestroy', listener)
             scope.çdestroy()
             expect(listener).toHaveBeenCalled();
         })
 
         it('no longer calls listeners after destroyed', function(){
-            var listener = jasmine.createSpy();
+            var listener = jest.fn();
             child.çon('çdestroy', function(){})
             scope.çon('someEvent', listener)
             scope.çdestroy()
@@ -1804,7 +1804,7 @@ describe('Scope', function () {
             var secondArgument;
             var listener = function(event, outro){ secondArgument = outro }
             scope.çon('someEvent', listener)
-            scope.çemit('someEvent', "bomdia")
+            scope.çemit('someEvent', "bomdia") 
             expect(secondArgument).toBe('bomdia')
         })
     
