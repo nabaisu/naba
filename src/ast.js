@@ -7,12 +7,17 @@ export default class AST {
         AST.Program = 'Program';
         AST.ArrayExpression = 'ArrayExpression';
         AST.ObjectExpression = 'ObjectExpression';
+        AST.MemberExpression = 'MemberExpression';
         AST.Property = 'Property';
         AST.Identifier = 'Identifier';
+        AST.ThisExpression = 'ThisExpression';
+        AST.LocalsExpression = 'LocalsExpression';
         AST.constants = {
             'null': { type: AST.Literal, value: null },
             'true': { type: AST.Literal, value: true },
-            'false': { type: AST.Literal, value: false }
+            'false': { type: AST.Literal, value: false },
+            'this': { type: AST.ThisExpression },
+            'çlocals': { type: AST.LocalsExpression }
         };
     }
 
@@ -29,15 +34,27 @@ export default class AST {
     }
 
     primary() {
+        var primary;
         if (this.expect('[')) {
-            return this.arrayDeclaration();
+            primary = this.arrayDeclaration();
         } else if (this.expect('{')) {
-            return this.object();
+            primary = this.object();
         } else if (AST.constants.hasOwnProperty(this.tokens[0].text)) {
-            return AST.constants[this.consume().text];
-        } else {
-            return this.constant();
+            primary = AST.constants[this.consume().text];
+        } else if (this.peek().identifier){
+            primary = this.identifier();
+        }else{
+            primary = this.constant();
         }
+        while (this.expect('.')) {
+            primary = {
+                type: AST.MemberExpression,
+                object: primary,
+                property: this.identifier()
+            }
+        }
+
+        return primary
     }
 
     expect(e) {

@@ -15,10 +15,13 @@ export default class ASTCompiler {
         var ast = this.astBuilder.ast(text);
         console.log('result of ast:', ast);
 
-        this.state = { body: [] };
+        this.state = { body: [], nextId: 0, vars: [] };
         this.recurse(ast);
         console.log('state.body:', this.state.body);
-        var fn = new Function(this.state.body.join(''));
+        var fn = new Function('s', 'l', (this.state.vars.length ?
+            `var ${this.state.vars.join(',')};` :
+            ''
+        ) + this.state.body.join(''));
         // for pretty print resulting fn
         var prettyFn = beautify(fn.toString(), { indent_size: 2, space_in_empty_paren: true });
         console.log(prettyFn);
@@ -26,6 +29,7 @@ export default class ASTCompiler {
     }
 
     recurse(ast) {
+        var intoId;
         //console.log('inside recurse:', ast);
         switch (ast.type) {
             case AST.Program:
@@ -49,6 +53,23 @@ export default class ASTCompiler {
                     //return this.recurse(property);
                 }, this))
                 return `{${properties.join(',')}}`
+            case AST.Identifier:
+                intoId = this.nextId();
+                this.if_(this.getHasOwnProperty('l', ast.name),
+                    this.assign(intoId, this.nonComputedMember('l', ast.name)))
+                this.if_(`${this.not(this.getHasOwnProperty('l', ast.name))} && s`,
+                    this.assign(intoId, this.nonComputedMember('s', ast.name)));
+                return intoId;
+            case AST.ThisExpression:
+                return 's';
+            case AST.MemberExpression:
+                intoId = this.nextId();
+                var left = this.recurse(ast.object);
+                this.if_(left,
+                    this.assign(intoId, this.nonComputedMember(left, ast.property.name)))
+                return intoId;
+            case AST.LocalsExpression:
+                return 'l';
             default:
                 throw 'error when choosing the type on the ast compiler';
         }
@@ -67,5 +88,31 @@ export default class ASTCompiler {
 
     stringEscapeFn(c) {
         return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
+    }
+
+    nonComputedMember(left, right) {
+        return `(${left}).${right}`;
+    }
+
+    if_(test, consequent) {
+        this.state.body.push('if(', test, '){', consequent, '}');
+    }
+
+    assign(id, value) {
+        return `${id}=${value};`
+    }
+
+    nextId() {
+        var id = `v${(this.state.nextId++)}`;
+        this.state.vars.push(id);
+        return id;
+    }
+
+    not(e) {
+        return `!(${e})`
+    }
+
+    getHasOwnProperty(object, property) {
+        return `${object} &&(${this.escape(property)} in ${object})`
     }
 }

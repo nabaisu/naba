@@ -2,10 +2,10 @@ export default class Lexer {
     constructor() {
         this.numberRegex = /[0-9]/;
         this.stringRegex = /[\"\']/;
-        this.identRegex = /[a-zA-Z_\$]/;
+        this.identRegex = /[a-zA-Z_\$ç]/;
         this.whitespaceRegex = /[ \n\r\t\v\u00A0]/;
         this.arrayRegex = /[\[\],]/;
-        this.objectRegex = /[\{\}:,]/;
+        this.objectRegex = /[\{\}:,.]/;
     }
 
     // from: '42'
