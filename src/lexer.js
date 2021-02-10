@@ -4,6 +4,8 @@ export default class Lexer {
         this.stringRegex = /[\"\']/;
         this.identRegex = /[a-zA-Z_\$]/;
         this.whitespaceRegex = /[ \n\r\t\v\u00A0]/;
+        this.arrayRegex = /[\[\],]/;
+        this.objectRegex = /[\{\}:,]/;
     }
 
     // from: '42'
@@ -16,14 +18,19 @@ export default class Lexer {
 
         while (this.index < this.text.length) {
             this.ch = this.text.charAt(this.index);
-        if (this.isNumber(this.ch) || (this.ch === '.' && this.isNumber(this.peek()))) {
+            if (this.isNumber(this.ch) || (this.ch === '.' && this.isNumber(this.peek()))) {
                 this.readNumber();
             } else if (this.isString(this.ch)) {
                 this.readString(this.ch);
-            }else if (this.isIdent(this.ch)) {
+            } else if (this.isIdent(this.ch)) {
                 this.readIdent();
-            }else if (this.isWhitespace(this.ch)) {
-                    this.index++;    
+            } else if (this.isWhitespace(this.ch)) {
+                this.index++;
+            } else if (this.isArray(this.ch) || this.isObject(this.ch)) {
+                this.tokens.push({
+                    text: this.ch
+                });
+                this.index++
             } else {
                 throw `unexpected next character: ${this.ch}`
             }
@@ -44,11 +51,17 @@ export default class Lexer {
     isWhitespace(char) {
         return char.match(this.whitespaceRegex);
     }
+    isArray(char) {
+        return char.match(this.arrayRegex);
+    }
+    isObject(char) {
+        return char.match(this.objectRegex);
+    }
 
     readNumber() {
         var number = '';
         while (this.index < this.text.length) {
-            var ch = this.text.charAt(this.index).toLowerCase(); //?
+            var ch = this.text.charAt(this.index).toLowerCase();
             if (ch === '.' || this.isNumber(ch)) {
                 number += ch;
             } else {
@@ -84,7 +97,7 @@ export default class Lexer {
         this.index++;
         var string = '';
         while (this.index < this.text.length) {
-            var ch = this.text.charAt(this.index); //?
+            var ch = this.text.charAt(this.index);
             if (escape) {
                 if (ch === 'u') {
                     var hex = this.text.substring(this.index + 1, this.index + 5);
@@ -116,7 +129,7 @@ export default class Lexer {
         throw 'unmatched quote'
     }
 
-    readIdent(){
+    readIdent() {
         var text = '';
         while (this.index < this.text.length) {
             var ch = this.text.charAt(this.index);
@@ -127,7 +140,7 @@ export default class Lexer {
             }
             this.index++
         }
-        var token = {text: text};
+        var token = { text: text, identifier: true };
         this.tokens.push(token);
     }
 
