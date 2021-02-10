@@ -12,6 +12,7 @@ export default class AST {
         AST.Identifier = 'Identifier';
         AST.ThisExpression = 'ThisExpression';
         AST.LocalsExpression = 'LocalsExpression';
+        AST.CallExpression = 'CallExpression';
         AST.constants = {
             'null': { type: AST.Literal, value: null },
             'true': { type: AST.Literal, value: true },
@@ -41,33 +42,55 @@ export default class AST {
             primary = this.object();
         } else if (AST.constants.hasOwnProperty(this.tokens[0].text)) {
             primary = AST.constants[this.consume().text];
-        } else if (this.peek().identifier){
+        } else if (this.peek().identifier) {
             primary = this.identifier();
-        }else{
+        } else {
             primary = this.constant();
         }
-        while (this.expect('.')) {
-            primary = {
-                type: AST.MemberExpression,
-                object: primary,
-                property: this.identifier()
+        var next;
+        while ((next = this.expect('.', '[', '('))) {
+            if (next.text === '[') {
+                primary = {
+                    type: AST.MemberExpression,
+                    object: primary,
+                    property: this.primary(),
+                    computed: true
+                }
+                this.consume(']');
+            } else if (next.text === '.') {
+                primary = {
+                    type: AST.MemberExpression,
+                    object: primary,
+                    property: this.identifier(), 
+                    computed: false
+                }
+            }else if (next.text === '('){
+                primary = {
+                    type: AST.CallExpression,
+                    callee: primary,
+                    arguments: this.parseArguments()
+                }
+                this.consume(')');
+
             }
+
         }
 
         return primary
     }
 
-    expect(e) {
-        var token = this.peek(e);
+    expect(e1, e2, e3, e4) {
+        var token = this.peek(e1, e2, e3, e4);
         if (token) {
             return this.tokens.shift();
         }
     }
 
-    peek(e) {
+    peek(e1, e2, e3, e4) {
         if (this.tokens.length > 0) {
             var text = this.tokens[0].text;
-            if (text === e || !e) {
+            if (text === e1 || text === e2 || text === e3 || text === e4 ||
+                (!e1 && !e2 && !e3 && !e4)) {
                 return this.tokens[0];
             }
         }
@@ -77,7 +100,7 @@ export default class AST {
         var elements = []
         if (!this.peek(']')) {
             do {
-                if (this.peek(']')) {
+                if (this.peek(']')) {
                     break;
                 }
                 elements.push(this.primary())
@@ -88,19 +111,19 @@ export default class AST {
         return { type: AST.ArrayExpression, elements: elements }
     }
 
-    object(){
+    object() {
         var properties = [];
         if (!this.peek('}')) {
             do {
-                var property = {type: AST.Property};
+                var property = { type: AST.Property };
                 if (this.peek().identifier) {
                     property.key = this.identifier();
                 } else {
                     property.key = this.constant();
                 }
                 this.consume(':');
-                property.value = this.primary();   
-                properties.push(property);             
+                property.value = this.primary();
+                properties.push(property);
             } while (this.expect(","))
         }
 
@@ -112,7 +135,7 @@ export default class AST {
         return { type: AST.Literal, value: this.consume().value }
     }
 
-    identifier(){
+    identifier() {
         return { type: AST.Identifier, name: this.consume().text }
     }
 
@@ -122,5 +145,15 @@ export default class AST {
             throw `Unexpected. Expecting: ${e}`
         }
         return token;
+    }
+
+    parseArguments(){
+        var args = []
+        if (!this.peek(')')) {
+            do {
+                args.push(this.primary())
+            } while (this.expect(","))
+        }
+        return args
     }
 }

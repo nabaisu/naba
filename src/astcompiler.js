@@ -65,11 +65,23 @@ export default class ASTCompiler {
             case AST.MemberExpression:
                 intoId = this.nextId();
                 var left = this.recurse(ast.object);
-                this.if_(left,
-                    this.assign(intoId, this.nonComputedMember(left, ast.property.name)))
+                if (ast.computed) {
+                    var right = this.recurse(ast.property);
+                    this.if_(left,
+                        this.assign(intoId, this.computedMember(left, right)))
+                } else {
+                    this.if_(left,
+                        this.assign(intoId, this.nonComputedMember(left, ast.property.name)))
+                }
                 return intoId;
             case AST.LocalsExpression:
                 return 'l';
+            case AST.CallExpression:
+                var callee = this.recurse(ast.callee);
+                var args = map(ast.arguments, bind(function(arg){
+                    return this.recurse(arg);
+                }, this))
+                return `${callee} && ${callee}(${args.join(',')})`; // this means call the callee if the callee exists, so don't call the callee if the callee don't exist
             default:
                 throw 'error when choosing the type on the ast compiler';
         }
@@ -94,12 +106,20 @@ export default class ASTCompiler {
         return `(${left}).${right}`;
     }
 
+    computedMember(left, right) {
+        return `(${left})[${right}]`;
+    }
+
     if_(test, consequent) {
         this.state.body.push('if(', test, '){', consequent, '}');
     }
 
     assign(id, value) {
         return `${id}=${value};`
+    }
+
+    call(left, value) {
+        return `(${left}).${value}()`
     }
 
     nextId() {
