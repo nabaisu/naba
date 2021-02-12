@@ -13,6 +13,7 @@ export default class AST {
         AST.ThisExpression = 'ThisExpression';
         AST.LocalsExpression = 'LocalsExpression';
         AST.CallExpression = 'CallExpression';
+        AST.AssignmentExpression = 'AssignmentExpression';
         AST.constants = {
             'null': { type: AST.Literal, value: null },
             'true': { type: AST.Literal, value: true },
@@ -31,7 +32,7 @@ export default class AST {
 
     }
     program() {
-        return { type: AST.Program, body: this.primary() }
+        return { type: AST.Program, body: this.assignment() }
     }
 
     primary() {
@@ -103,7 +104,7 @@ export default class AST {
                 if (this.peek(']')) {
                     break;
                 }
-                elements.push(this.primary())
+                elements.push(this.assignment())
             } while (this.expect(","))
         }
         console.log(elements);
@@ -122,7 +123,7 @@ export default class AST {
                     property.key = this.constant();
                 }
                 this.consume(':');
-                property.value = this.primary();
+                property.value = this.assignment();
                 properties.push(property);
             } while (this.expect(","))
         }
@@ -139,6 +140,15 @@ export default class AST {
         return { type: AST.Identifier, name: this.consume().text }
     }
 
+    assignment(){
+        var left = this.primary();
+        if (this.expect('=')) {
+            var right = this.primary();
+            return {type: AST.AssignmentExpression, left: left, right: right}
+        }
+        return left
+    }
+
     consume(e) {
         var token = this.expect(e);
         if (!token) {
@@ -151,7 +161,7 @@ export default class AST {
         var args = []
         if (!this.peek(')')) {
             do {
-                args.push(this.primary())
+                args.push(this.assignment())
             } while (this.expect(","))
         }
         return args

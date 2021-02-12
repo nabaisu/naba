@@ -4,9 +4,7 @@ export default class Lexer {
         this.stringRegex = /[\"\']/;
         this.identRegex = /[a-zA-Z_\$ç]/;
         this.whitespaceRegex = /[ \n\r\t\v\u00A0]/;
-        this.arrayRegex = /[\[\],]/;
-        this.objectRegex = /[\{\}:,.]/;
-        this.functionRegex = /[\(\)]/;
+        this.arrayObjectFnAssignmentRegex = /[\[\],\{\}:.\(\)=]/;
     }
 
     // from: '42'
@@ -27,7 +25,7 @@ export default class Lexer {
                 this.readIdent();
             } else if (this.isWhitespace(this.ch)) {
                 this.index++;
-            } else if (this.isArray(this.ch) || this.isObject(this.ch) || this.isFunction(this.ch)) {
+            } else if (this.isArrayObjectFnAssignmentRegex(this.ch) ) {
                 this.tokens.push({
                     text: this.ch
                 });
@@ -52,14 +50,8 @@ export default class Lexer {
     isWhitespace(char) {
         return char.match(this.whitespaceRegex);
     }
-    isArray(char) {
-        return char.match(this.arrayRegex);
-    }
-    isObject(char) {
-        return char.match(this.objectRegex);
-    }
-    isFunction(char) {
-        return char.match(this.functionRegex);
+    isArrayObjectFnAssignmentRegex(char) {
+        return char.match(this.arrayObjectFnAssignmentRegex);
     }
 
     readNumber() {
