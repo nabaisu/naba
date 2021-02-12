@@ -31,15 +31,18 @@ function ensureSafeObject(obj) {
 }
 
 function ensureSafeFunction(obj) {
-    if (obj) {
+    if (obj) {
         if (obj.constructor === obj) {
             throw 'Referencing Function in Naba expressions is disallowed!'
-        } else if (obj === CALL || obj === APPLY || obj === BIND) {
-            throw 'Referencing call, apply or bind in Naba expressions is disallowed!'            
+        } else if (obj === CALL || obj === APPLY || obj === BIND) {
+            throw 'Referencing call, apply or bind in Naba expressions is disallowed!'
         }
     }
 }
 
+function ifDefined(expr, defaultValue) {
+    return (typeof expr === 'undefined')? defaultValue: expr;
+}
 
 export default class ASTCompiler {
     constructor(astBuilder) {
@@ -63,11 +66,21 @@ export default class ASTCompiler {
             `var ${this.state.vars.join(',')};` :
             '') + this.state.body.join('')
             }}; return fn;`;
-        var fn = new Function('ensureSafeMemberName', 'ensureSafeObject','ensureSafeFunction', fnString)
+        var fn = new Function(
+            'ensureSafeMemberName', 
+            'ensureSafeObject', 
+            'ensureSafeFunction',
+            'ifDefined',
+            fnString)
         // for pretty print resulting fn
         var prettyFn = beautify(fn.toString(), { indent_size: 2, space_in_empty_paren: true });
         console.log(prettyFn);
-        return fn(ensureSafeMemberName, ensureSafeObject, ensureSafeFunction);
+        return fn(
+            ensureSafeMemberName, 
+            ensureSafeObject, 
+            ensureSafeFunction,
+            ifDefined
+            );
     }
 
     recurse(ast, context, createOnTheFly) {
@@ -180,6 +193,8 @@ export default class ASTCompiler {
                 }
                 this.addEnsureSafeFunction(callee);
                 return `${callee} &&ensureSafeObject(${callee}(${args.join(',')}))`; // this means call the callee if the callee exists, so don't call the callee if the callee don't exist
+            case AST.UnaryExpression:
+                return `${ast.operator}(${this.ifDefined(this.recurse(ast.argument), 0)})`
             default:
                 throw 'error when choosing the type on the ast compiler';
         }
@@ -240,7 +255,11 @@ export default class ASTCompiler {
     addEnsureSafeObject(context) {
         this.state.body.push(`ensureSafeObject(${context});`)
     }
-    addEnsureSafeFunction(callee){
+    addEnsureSafeFunction(callee) {
         this.state.body.push(`ensureSafeFunction(${callee});`)
+    }
+
+    ifDefined(expr, valueIfUndefined) {
+        return `ifDefined(${expr}, ${this.escape(valueIfUndefined)})`
     }
 }

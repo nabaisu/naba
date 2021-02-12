@@ -5,6 +5,9 @@ export default class Lexer {
         this.identRegex = /[a-zA-Z_\$ç]/;
         this.whitespaceRegex = /[ \n\r\t\v\u00A0]/;
         this.arrayObjectFnAssignmentRegex = /[\[\],\{\}:.\(\)=]/;
+        this.OPERATORS = {
+            '+': true
+        }
     }
 
     // from: '42'
@@ -31,7 +34,13 @@ export default class Lexer {
                 });
                 this.index++
             } else {
-                throw `unexpected next character: ${this.ch}`
+                var op = this.OPERATORS[this.ch]
+                if (op) {
+                    this.tokens.push({text: this.ch});
+                    this.index++;
+                } else {
+                    throw `unexpected next character: ${this.ch}`
+                }
             }
         }
 
@@ -52,6 +61,9 @@ export default class Lexer {
     }
     isArrayObjectFnAssignmentRegex(char) {
         return char.match(this.arrayObjectFnAssignmentRegex);
+    }
+    isUnary(char) {
+        return char.match(this.unaryRegex);
     }
 
     readNumber() {

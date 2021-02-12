@@ -14,6 +14,7 @@ export default class AST {
         AST.LocalsExpression = 'LocalsExpression';
         AST.CallExpression = 'CallExpression';
         AST.AssignmentExpression = 'AssignmentExpression';
+        AST.UnaryExpression = 'UnaryExpression';
         AST.constants = {
             'null': { type: AST.Literal, value: null },
             'true': { type: AST.Literal, value: true },
@@ -62,10 +63,10 @@ export default class AST {
                 primary = {
                     type: AST.MemberExpression,
                     object: primary,
-                    property: this.identifier(), 
+                    property: this.identifier(),
                     computed: false
                 }
-            }else if (next.text === '('){
+            } else if (next.text === '(') {
                 primary = {
                     type: AST.CallExpression,
                     callee: primary,
@@ -78,6 +79,18 @@ export default class AST {
         }
 
         return primary
+    }
+
+    unary() {
+        if (this.expect('+')) {
+            return {
+                type: AST.UnaryExpression,
+                operator: '+',
+                argument: this.primary()
+            }
+        } else {
+            return this.primary()
+        }
     }
 
     expect(e1, e2, e3, e4) {
@@ -140,11 +153,11 @@ export default class AST {
         return { type: AST.Identifier, name: this.consume().text }
     }
 
-    assignment(){
-        var left = this.primary();
+    assignment() {
+        var left = this.unary();
         if (this.expect('=')) {
-            var right = this.primary();
-            return {type: AST.AssignmentExpression, left: left, right: right}
+            var right = this.unary();
+            return { type: AST.AssignmentExpression, left: left, right: right }
         }
         return left
     }
@@ -157,7 +170,7 @@ export default class AST {
         return token;
     }
 
-    parseArguments(){
+    parseArguments() {
         var args = []
         if (!this.peek(')')) {
             do {
