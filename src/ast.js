@@ -15,6 +15,7 @@ export default class AST {
         AST.CallExpression = 'CallExpression';
         AST.AssignmentExpression = 'AssignmentExpression';
         AST.UnaryExpression = 'UnaryExpression';
+        AST.BinaryExpression = 'BinaryExpression';
         AST.constants = {
             'null': { type: AST.Literal, value: null },
             'true': { type: AST.Literal, value: true },
@@ -82,15 +83,30 @@ export default class AST {
     }
 
     unary() {
-        if (this.expect('+')) {
+        var token;
+        if ((token = this.expect('+', '!', '-', '*'))) {
             return {
                 type: AST.UnaryExpression,
-                operator: '+',
-                argument: this.primary()
+                operator: token.text,
+                argument: this.unary()
             }
         } else {
             return this.primary()
         }
+    }
+
+    multiplicative(){
+        var left = this.unary();
+        var token;
+        while ((token = this.expect('*', '/', '%'))){
+            left = {
+                type: AST.BinaryExpression,
+                left: left,
+                operator: token.text,
+                right: this.unary()
+            }
+        }
+        return left;
     }
 
     expect(e1, e2, e3, e4) {
@@ -154,9 +170,9 @@ export default class AST {
     }
 
     assignment() {
-        var left = this.unary();
+        var left = this.multiplicative();
         if (this.expect('=')) {
-            var right = this.unary();
+            var right = this.multiplicative();
             return { type: AST.AssignmentExpression, left: left, right: right }
         }
         return left

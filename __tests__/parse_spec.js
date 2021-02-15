@@ -481,5 +481,39 @@ describe('parse', () => {
         it('replaces undefined with zero for unary +', () => {
             expect(parse('+a')({})).toBe(0);
         })
+        it('parses a unary !', () => {
+            expect(parse('!true')()).toBe(false);
+            expect(parse('!42')()).toBe(false);
+            expect(parse('!a')({a: false})).toBe(true);
+            expect(parse('!!a')({a: false})).toBe(false);
+        })
+        
+        it('parses a unary -', () => {
+            expect(parse('-42')()).toBe(-42);
+            expect(parse('-a')({a: -42})).toBe(42);
+            expect(parse('--a')({a: -42})).toBe(-42);
+            expect(parse('-a')({}) === 0).toBe(true); // due to 0 and -0
+        })
+
+        it('parses a ! in a string', () => {
+            expect(parse('"!"')()).toBe('!');
+        })
+
+        it('parses a multiplication', () => {
+            expect(parse('21 * 2')()).toBe(42);
+        })
+        it('parses a division', () => {
+            expect(parse('84 / 2')()).toBe(42);
+        })
+        it('parses a remainder', () => {
+            expect(parse('-85 % -43')()).toBe(-42);
+        })
+        it('parses several multiplicatives', () => {
+            expect(parse('36 * 2 % 5')()).toBe(2);
+        })
+        
+
+        
+
     })
 })

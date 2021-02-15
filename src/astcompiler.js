@@ -195,6 +195,8 @@ export default class ASTCompiler {
                 return `${callee} &&ensureSafeObject(${callee}(${args.join(',')}))`; // this means call the callee if the callee exists, so don't call the callee if the callee don't exist
             case AST.UnaryExpression:
                 return `${ast.operator}(${this.ifDefined(this.recurse(ast.argument), 0)})`
+            case AST.BinaryExpression:    
+            return `(${this.recurse(ast.left)} ${ast.operator} ${this.recurse(ast.right)})`
             default:
                 throw 'error when choosing the type on the ast compiler';
         }

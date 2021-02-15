@@ -6,7 +6,12 @@ export default class Lexer {
         this.whitespaceRegex = /[ \n\r\t\v\u00A0]/;
         this.arrayObjectFnAssignmentRegex = /[\[\],\{\}:.\(\)=]/;
         this.OPERATORS = {
-            '+': true
+            '+': true,
+            '-': true,
+            '!': true,
+            '*': true,
+            '/': true,
+            '%': true,
         }
     }
 
@@ -103,9 +108,11 @@ export default class Lexer {
         }
         var escape = false;
         this.index++;
+        var rawString = startingQuote;
         var string = '';
         while (this.index < this.text.length) {
             var ch = this.text.charAt(this.index);
+            rawString += ch;
             if (escape) {
                 if (ch === 'u') {
                     var hex = this.text.substring(this.index + 1, this.index + 5);
@@ -123,7 +130,7 @@ export default class Lexer {
                 // here is not going yet
                 this.index++;
                 this.tokens.push({
-                    text: string,
+                    text: rawString,
                     value: string
                 });
                 return;
