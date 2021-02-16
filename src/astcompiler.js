@@ -1,5 +1,5 @@
 import AST from "./ast";
-import { isString, isNull, map, bind } from 'lodash'
+import { isString, isNull, map, bind, forEach, initial, last } from 'lodash'
 import { js as beautify } from 'js-beautify' // this is mostly to be able to get the returning function pretty
 
 var CALL = Function.prototype.call;
@@ -41,7 +41,7 @@ function ensureSafeFunction(obj) {
 }
 
 function ifDefined(expr, defaultValue) {
-    return (typeof expr === 'undefined')? defaultValue: expr;
+    return (typeof expr === 'undefined') ? defaultValue : expr;
 }
 
 export default class ASTCompiler {
@@ -49,8 +49,8 @@ export default class ASTCompiler {
         this.astBuilder = astBuilder;
 
         ASTCompiler.stringEscapeRegex = /[^ a-zA-Z0-9]/g;
-        ASTCompiler.scopeId = 'scope';
-        ASTCompiler.localsId = 'locals';
+        ASTCompiler.scopeId = 's';
+        ASTCompiler.localsId = 'l';
         ASTCompiler.variablesId = 'v';
     }
 
@@ -67,8 +67,8 @@ export default class ASTCompiler {
             '') + this.state.body.join('')
             }}; return fn;`;
         var fn = new Function(
-            'ensureSafeMemberName', 
-            'ensureSafeObject', 
+            'ensureSafeMemberName',
+            'ensureSafeObject',
             'ensureSafeFunction',
             'ifDefined',
             fnString)
@@ -76,11 +76,11 @@ export default class ASTCompiler {
         var prettyFn = beautify(fn.toString(), { indent_size: 2, space_in_empty_paren: true });
         console.log(prettyFn);
         return fn(
-            ensureSafeMemberName, 
-            ensureSafeObject, 
+            ensureSafeMemberName,
+            ensureSafeObject,
             ensureSafeFunction,
             ifDefined
-            );
+        );
     }
 
     recurse(ast, context, createOnTheFly) {
@@ -88,7 +88,10 @@ export default class ASTCompiler {
         //console.log('inside recurse:', ast);
         switch (ast.type) {
             case AST.Program:
-                this.state.body.push(`return ${this.recurse(ast.body)} ;`);
+                forEach(initial(ast.body), bind(function (stmt) {
+                    this.state.body.push(this.recurse(stmt), ';');
+                }, this));
+                this.state.body.push(`return ${this.recurse(last(ast.body))} ;`);
                 break;
             case AST.Literal:
                 return this.escape(ast.value)
@@ -195,18 +198,27 @@ export default class ASTCompiler {
                 return `${callee} &&ensureSafeObject(${callee}(${args.join(',')}))`; // this means call the callee if the callee exists, so don't call the callee if the callee don't exist
             case AST.UnaryExpression:
                 return `${ast.operator}(${this.ifDefined(this.recurse(ast.argument), 0)})`
-            case AST.BinaryExpression:   
-            if (ast.operator === '+' || ast.operator === '-') {
-                return `(${this.ifDefined(this.recurse(ast.left), 0)} ${ast.operator} ${this.ifDefined(this.recurse(ast.right), 0)})`                
-            } else {
-                return `(${this.recurse(ast.left)} ${ast.operator} ${this.recurse(ast.right)})`
-            } 
+            case AST.BinaryExpression:
+                if (ast.operator === '+' || ast.operator === '-') {
+                    return `(${this.ifDefined(this.recurse(ast.left), 0)} ${ast.operator} ${this.ifDefined(this.recurse(ast.right), 0)})`
+                } else {
+                    return `(${this.recurse(ast.left)} ${ast.operator} ${this.recurse(ast.right)})`
+                }
             case AST.LogicalExpression:
                 intoId = this.nextId();
                 this.state.body.push(this.assign(intoId, this.recurse(ast.left)))
                 this.if_(ast.operator === '&&' ? intoId : this.not(intoId),
-                this.assign(intoId, this.recurse(ast.right)))
+                    this.assign(intoId, this.recurse(ast.right)))
                 return intoId;
+            case AST.ConditionalExpression:
+                intoId = this.nextId();
+                var testId = this.nextId();
+                this.state.body.push(this.assign(testId, this.recurse(ast.test)));
+                this.if_(testId,
+                    this.assign(intoId, this.recurse(ast.consequent)));
+                this.if_(this.not(testId),
+                    this.assign(intoId, this.recurse(ast.alternate)));
+                return intoId
             default:
                 throw 'error when choosing the type on the ast compiler';
         }

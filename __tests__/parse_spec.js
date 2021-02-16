@@ -484,14 +484,14 @@ describe('parse', () => {
         it('parses a unary !', () => {
             expect(parse('!true')()).toBe(false);
             expect(parse('!42')()).toBe(false);
-            expect(parse('!a')({a: false})).toBe(true);
-            expect(parse('!!a')({a: false})).toBe(false);
+            expect(parse('!a')({ a: false })).toBe(true);
+            expect(parse('!!a')({ a: false })).toBe(false);
         })
-        
+
         it('parses a unary -', () => {
             expect(parse('-42')()).toBe(-42);
-            expect(parse('-a')({a: -42})).toBe(42);
-            expect(parse('--a')({a: -42})).toBe(-42);
+            expect(parse('-a')({ a: -42 })).toBe(42);
+            expect(parse('--a')({ a: -42 })).toBe(-42);
             expect(parse('-a')({}) === 0).toBe(true); // due to 0 and -0
         })
 
@@ -542,12 +542,10 @@ describe('parse', () => {
         it('parses equality operators', () => {
             expect(parse('42 == 42')()).toBe(true);
             expect(parse('42 == "42"')()).toBe(true);
-            /*
             expect(parse('42 != "42"')()).toBe(false);
             expect(parse('42 === 42')()).toBe(true);
             expect(parse('42 === "42"')()).toBe(false);
             expect(parse('42 !== 42')()).toBe(false);
-            */
         })
         it('parses relations on a higher precedence than equality', () => {
             expect(parse('2 == "2" > 2 === "2"')()).toBe(false);
@@ -584,14 +582,14 @@ describe('parse', () => {
 
         it('short-circuits AND', () => {
             var invoked;
-            var scope = {fn: function(){invoked = true}}
+            var scope = { fn: function () { invoked = true } }
             parse('false && fn()')(scope);
             expect(invoked).toBeUndefined();
         })
 
         it('short-circuits OR', () => {
             var invoked;
-            var scope = {fn: function(){invoked = true}}
+            var scope = { fn: function () { invoked = true } }
             parse('true || fn()')(scope);
             expect(invoked).toBeUndefined();
         })
@@ -604,7 +602,39 @@ describe('parse', () => {
             expect(parse('1 === 2 || 2 === 2')()).toBeTruthy();
         })
 
+        it('parses the ternary expression', () => {
+            expect(parse('a === 42 ? true : false')({ a: 42 })).toBe(true);
+            expect(parse('a === 42 ? true : false')({ a: 43 })).toBe(false);
+        })
+        it('parses OR with a higher precedence than ternary', () => {
+            expect(parse('0 || 1 ? 0 || 2 : 0 || 3')()).toBe(2);
+        })
 
+        it('parses nested ternaries', () => {
+            expect(parse('a === 42 ? b === 42 ? "a and b" : "a" : c === 42 ? "c" : "none"')({
+                a: 44,
+                b: 43,
+                c: 42
+            })).toBe('c');
+        })
 
+        it('parses parentheses altering precedence order', () => {
+            expect(parse('21 * (3-1)')()).toBe(42);
+            expect(parse('false && (true || true)')()).toBe(false);
+            expect(parse('-((a % 2) === 0 ? 1 : 2)')({ a: 42 })).toBe(-1);
+        })
+        it('parses several statements', () => {
+            var scope = {};
+            parse('a = 1; b = 2; c = 3')(scope)
+            expect(scope).toEqual({
+                a: 1,
+                b: 2,
+                c: 3
+            });
+        })
+
+        it('returns the value of the last return', () => {
+            expect(parse('a = 1; b = 2; a + b')({})).toBe(3);
+        })
     })
 })

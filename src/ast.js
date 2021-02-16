@@ -16,6 +16,8 @@ export default class AST {
         AST.AssignmentExpression = 'AssignmentExpression';
         AST.UnaryExpression = 'UnaryExpression';
         AST.BinaryExpression = 'BinaryExpression';
+        AST.LogicalExpression = 'LogicalExpression';
+        AST.ConditionalExpression = 'ConditionalExpression';
         AST.constants = {
             'null': { type: AST.Literal, value: null },
             'true': { type: AST.Literal, value: true },
@@ -34,24 +36,50 @@ export default class AST {
 
     }
     program() {
-        return { type: AST.Program, body: this.assignment() }
+        var body = [];
+        while (true) {
+            if (this.tokens.length) {
+                body.push(this.assignment());
+            }
+            if (!this.expect(';')) {
+                return { type: AST.Program, body: body }
+            }
+        }
+
     }
 
     assignment() {
-        var left = this.logicalOR();
+        var left = this.ternary();
         if (this.expect('=')) {
-            var right = this.logicalOR();
+            var right = this.ternary();
             return { type: AST.AssignmentExpression, left: left, right: right }
         }
         return left
     }
 
-    logicalOR(){
+    ternary() {
+        var test = this.logicalOR();
+        if (this.expect('?')) {
+            var consequent = this.assignment();
+            if (this.consume(':')) {
+                var alternate = this.assignment();
+                return {
+                    type: AST.ConditionalExpression,
+                    test: test,
+                    consequent: consequent,
+                    alternate: alternate
+                }
+            }
+        }
+        return test;
+    }
+
+    logicalOR() {
         var left = this.logicalAND();
         var token;
-        while ((token = this.expect('&&'))){
+        while ((token = this.expect('||'))) {
             left = {
-                type: AST.BinaryExpression,
+                type: AST.LogicalExpression,
                 left: left,
                 operator: token.text,
                 right: this.logicalAND()
@@ -60,12 +88,12 @@ export default class AST {
         return left;
     }
 
-    logicalAND(){
+    logicalAND() {
         var left = this.equality();
         var token;
-        while ((token = this.expect('&&'))){
+        while ((token = this.expect('&&'))) {
             left = {
-                type: AST.BinaryExpression,
+                type: AST.LogicalExpression,
                 left: left,
                 operator: token.text,
                 right: this.equality()
@@ -74,10 +102,10 @@ export default class AST {
         return left;
     }
 
-    equality(){
+    equality() {
         var left = this.relational();
         var token;
-        while ((token = this.expect('==','!=','===','!=='))){
+        while ((token = this.expect('==', '!=', '===', '!=='))) {
             left = {
                 type: AST.BinaryExpression,
                 left: left,
@@ -88,10 +116,10 @@ export default class AST {
         return left;
     }
 
-    relational(){
+    relational() {
         var left = this.additive();
         var token;
-        while ((token = this.expect('<','<=','>','>='))){
+        while ((token = this.expect('<', '<=', '>', '>='))) {
             left = {
                 type: AST.BinaryExpression,
                 left: left,
@@ -102,10 +130,10 @@ export default class AST {
         return left;
     }
 
-    additive(){
+    additive() {
         var left = this.multiplicative();
         var token;
-        while ((token = this.expect('+')) || (token = this.expect('-'))){
+        while ((token = this.expect('+')) || (token = this.expect('-'))) {
             left = {
                 type: AST.BinaryExpression,
                 left: left,
@@ -116,10 +144,10 @@ export default class AST {
         return left;
     }
 
-    multiplicative(){
+    multiplicative() {
         var left = this.unary();
         var token;
-        while ((token = this.expect('*', '/', '%'))){
+        while ((token = this.expect('*', '/', '%'))) {
             left = {
                 type: AST.BinaryExpression,
                 left: left,
@@ -145,7 +173,10 @@ export default class AST {
 
     primary() {
         var primary;
-        if (this.expect('[')) {
+        if (this.expect('(')) {
+            primary = this.assignment();
+            this.consume(')');
+        } else if (this.expect('[')) {
             primary = this.arrayDeclaration();
         } else if (this.expect('{')) {
             primary = this.object();

@@ -4,7 +4,7 @@ export default class Lexer {
         this.stringRegex = /[\"\']/;
         this.identRegex = /[a-zA-Z_\$ç]/;
         this.whitespaceRegex = /[ \n\r\t\v\u00A0]/;
-        this.arrayObjectFnAssignmentRegex = /[\[\],\{\}:.\(\)]/;
+        this.arrayObjectFnAssignmentRegex = /[\[\],\{\}:.\(\)\?\;]/;
         this.OPERATORS = {
             '+': true,
             '-': true,
@@ -12,17 +12,19 @@ export default class Lexer {
             '*': true,
             '/': true,
             '%': true,
-            '=': true,
-            '==': true,
-            '!=': true,
             '===': true,
             '!==': true,
+            '==': true,
+            '!=': true,
+            '=': true,
             '<': true,
             '<=': true,
             '>': true,
             '>=': true,
             '||': true,
             '&&': true,
+            '(': true,
+            ')': true,
         }
     }
 
@@ -44,21 +46,21 @@ export default class Lexer {
                 this.readIdent();
             } else if (this.isWhitespace(this.ch)) {
                 this.index++;
-            } else if (this.isArrayObjectFnAssignmentRegex(this.ch) ) {
+            } else if (this.isArrayObjectFnAssignmentRegex(this.ch)) {
                 this.tokens.push({
                     text: this.ch
                 });
                 this.index++
             } else {
-                var ch = this.ch;
-                var ch2 = this.ch + this.peek();
-                var ch3 = this.ch + this.peek() + this.peek(2);
+                var ch = this.ch;  // =
+                var ch2 = this.ch + this.peek(); // == 
+                var ch3 = this.ch + this.peek() + this.peek(2); // === 
                 var op = this.OPERATORS[ch];
                 var op2 = this.OPERATORS[ch2];
                 var op3 = this.OPERATORS[ch3];
                 if (op || op2 || op3) {
-                    var token = op3 ? ch3: (op2 ? ch2 : ch);
-                    this.tokens.push({text: token});
+                    var token = op3 ? ch3 : (op2 ? ch2 : ch);
+                    this.tokens.push({ text: token });
                     this.index += token.length;
                 } else {
                     throw `unexpected next character: ${this.ch}`
@@ -182,9 +184,9 @@ export default class Lexer {
 
     peek(n) {
         n = n || 1;
-        return this.index + n < this.text.length ? 
-        this.text.charAt(this.index + n) : 
-        false
+        return this.index + n < this.text.length ?
+            this.text.charAt(this.index + n) :
+            false
     }
 
     occurencesOf(stringToSearch, whatToFind) {
