@@ -4,7 +4,7 @@ export default class Lexer {
         this.stringRegex = /[\"\']/;
         this.identRegex = /[a-zA-Z_\$ç]/;
         this.whitespaceRegex = /[ \n\r\t\v\u00A0]/;
-        this.arrayObjectFnAssignmentRegex = /[\[\],\{\}:.\(\)=]/;
+        this.arrayObjectFnAssignmentRegex = /[\[\],\{\}:.\(\)]/;
         this.OPERATORS = {
             '+': true,
             '-': true,
@@ -12,6 +12,17 @@ export default class Lexer {
             '*': true,
             '/': true,
             '%': true,
+            '=': true,
+            '==': true,
+            '!=': true,
+            '===': true,
+            '!==': true,
+            '<': true,
+            '<=': true,
+            '>': true,
+            '>=': true,
+            '||': true,
+            '&&': true,
         }
     }
 
@@ -39,10 +50,16 @@ export default class Lexer {
                 });
                 this.index++
             } else {
-                var op = this.OPERATORS[this.ch]
-                if (op) {
-                    this.tokens.push({text: this.ch});
-                    this.index++;
+                var ch = this.ch;
+                var ch2 = this.ch + this.peek();
+                var ch3 = this.ch + this.peek() + this.peek(2);
+                var op = this.OPERATORS[ch];
+                var op2 = this.OPERATORS[ch2];
+                var op3 = this.OPERATORS[ch3];
+                if (op || op2 || op3) {
+                    var token = op3 ? ch3: (op2 ? ch2 : ch);
+                    this.tokens.push({text: token});
+                    this.index += token.length;
                 } else {
                     throw `unexpected next character: ${this.ch}`
                 }
@@ -163,8 +180,11 @@ export default class Lexer {
         return ch === '-' || ch === '+' || this.isNumber(ch);
     }
 
-    peek() {
-        return (this.index < this.text.length - 1) ? this.text.charAt(this.index + 1) : false
+    peek(n) {
+        n = n || 1;
+        return this.index + n < this.text.length ? 
+        this.text.charAt(this.index + n) : 
+        false
     }
 
     occurencesOf(stringToSearch, whatToFind) {

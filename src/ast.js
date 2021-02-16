@@ -37,6 +37,112 @@ export default class AST {
         return { type: AST.Program, body: this.assignment() }
     }
 
+    assignment() {
+        var left = this.logicalOR();
+        if (this.expect('=')) {
+            var right = this.logicalOR();
+            return { type: AST.AssignmentExpression, left: left, right: right }
+        }
+        return left
+    }
+
+    logicalOR(){
+        var left = this.logicalAND();
+        var token;
+        while ((token = this.expect('&&'))){
+            left = {
+                type: AST.BinaryExpression,
+                left: left,
+                operator: token.text,
+                right: this.logicalAND()
+            }
+        }
+        return left;
+    }
+
+    logicalAND(){
+        var left = this.equality();
+        var token;
+        while ((token = this.expect('&&'))){
+            left = {
+                type: AST.BinaryExpression,
+                left: left,
+                operator: token.text,
+                right: this.equality()
+            }
+        }
+        return left;
+    }
+
+    equality(){
+        var left = this.relational();
+        var token;
+        while ((token = this.expect('==','!=','===','!=='))){
+            left = {
+                type: AST.BinaryExpression,
+                left: left,
+                operator: token.text,
+                right: this.relational()
+            }
+        }
+        return left;
+    }
+
+    relational(){
+        var left = this.additive();
+        var token;
+        while ((token = this.expect('<','<=','>','>='))){
+            left = {
+                type: AST.BinaryExpression,
+                left: left,
+                operator: token.text,
+                right: this.additive()
+            }
+        }
+        return left;
+    }
+
+    additive(){
+        var left = this.multiplicative();
+        var token;
+        while ((token = this.expect('+')) || (token = this.expect('-'))){
+            left = {
+                type: AST.BinaryExpression,
+                left: left,
+                operator: token.text,
+                right: this.multiplicative()
+            }
+        }
+        return left;
+    }
+
+    multiplicative(){
+        var left = this.unary();
+        var token;
+        while ((token = this.expect('*', '/', '%'))){
+            left = {
+                type: AST.BinaryExpression,
+                left: left,
+                operator: token.text,
+                right: this.unary()
+            }
+        }
+        return left;
+    }
+
+    unary() {
+        var token;
+        if ((token = this.expect('+', '!', '-', '*'))) {
+            return {
+                type: AST.UnaryExpression,
+                operator: token.text,
+                argument: this.unary()
+            }
+        } else {
+            return this.primary()
+        }
+    }
+
     primary() {
         var primary;
         if (this.expect('[')) {
@@ -80,33 +186,6 @@ export default class AST {
         }
 
         return primary
-    }
-
-    unary() {
-        var token;
-        if ((token = this.expect('+', '!', '-', '*'))) {
-            return {
-                type: AST.UnaryExpression,
-                operator: token.text,
-                argument: this.unary()
-            }
-        } else {
-            return this.primary()
-        }
-    }
-
-    multiplicative(){
-        var left = this.unary();
-        var token;
-        while ((token = this.expect('*', '/', '%'))){
-            left = {
-                type: AST.BinaryExpression,
-                left: left,
-                operator: token.text,
-                right: this.unary()
-            }
-        }
-        return left;
     }
 
     expect(e1, e2, e3, e4) {
@@ -167,15 +246,6 @@ export default class AST {
 
     identifier() {
         return { type: AST.Identifier, name: this.consume().text }
-    }
-
-    assignment() {
-        var left = this.multiplicative();
-        if (this.expect('=')) {
-            var right = this.multiplicative();
-            return { type: AST.AssignmentExpression, left: left, right: right }
-        }
-        return left
     }
 
     consume(e) {

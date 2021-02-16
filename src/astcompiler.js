@@ -195,8 +195,18 @@ export default class ASTCompiler {
                 return `${callee} &&ensureSafeObject(${callee}(${args.join(',')}))`; // this means call the callee if the callee exists, so don't call the callee if the callee don't exist
             case AST.UnaryExpression:
                 return `${ast.operator}(${this.ifDefined(this.recurse(ast.argument), 0)})`
-            case AST.BinaryExpression:    
-            return `(${this.recurse(ast.left)} ${ast.operator} ${this.recurse(ast.right)})`
+            case AST.BinaryExpression:   
+            if (ast.operator === '+' || ast.operator === '-') {
+                return `(${this.ifDefined(this.recurse(ast.left), 0)} ${ast.operator} ${this.ifDefined(this.recurse(ast.right), 0)})`                
+            } else {
+                return `(${this.recurse(ast.left)} ${ast.operator} ${this.recurse(ast.right)})`
+            } 
+            case AST.LogicalExpression:
+                intoId = this.nextId();
+                this.state.body.push(this.assign(intoId, this.recurse(ast.left)))
+                this.if_(ast.operator === '&&' ? intoId : this.not(intoId),
+                this.assign(intoId, this.recurse(ast.right)))
+                return intoId;
             default:
                 throw 'error when choosing the type on the ast compiler';
         }
