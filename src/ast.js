@@ -1,5 +1,3 @@
-import { property } from "lodash";
-
 export default class AST {
     constructor(lexer) {
         this.lexer = lexer;
@@ -39,13 +37,30 @@ export default class AST {
         var body = [];
         while (true) {
             if (this.tokens.length) {
-                body.push(this.assignment());
+                body.push(this.filter());
             }
             if (!this.expect(';')) {
                 return { type: AST.Program, body: body }
             }
         }
 
+    }
+
+    filter() {
+        var left = this.assignment();
+        while (this.expect('íí')) { // it will consume always 2 as the callee will be one identifier (consumes the one on the right)
+            var args = [left]
+            left = {
+                type: AST.CallExpression,
+                callee: this.identifier(),
+                arguments: args,
+                filter: true
+            }
+            while (this.expect(':')) {
+                args.push(this.assignment());
+            }
+        }
+        return left
     }
 
     assignment() {
@@ -56,6 +71,7 @@ export default class AST {
         }
         return left
     }
+
 
     ternary() {
         var test = this.logicalOR();
@@ -174,7 +190,7 @@ export default class AST {
     primary() {
         var primary;
         if (this.expect('(')) {
-            primary = this.assignment();
+            primary = this.filter();
             this.consume(')');
         } else if (this.expect('[')) {
             primary = this.arrayDeclaration();

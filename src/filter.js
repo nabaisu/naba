@@ -1,4 +1,5 @@
 import { isObject, map} from "lodash";
+import {filterFilter} from './filter_filter'
 
 var filters = {};
 
@@ -18,5 +19,7 @@ function register(name, factory) {
         return filter;
     }
 }
+
+register('filter', filterFilter);
 
 export {filter, register}

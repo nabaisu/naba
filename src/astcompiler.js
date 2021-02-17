@@ -1,6 +1,7 @@
 import AST from "./ast";
-import { isString, isNull, map, bind, forEach, initial, last } from 'lodash'
+import { isString, isNull, map, bind, forEach, initial, last, isEmpty } from 'lodash'
 import { js as beautify } from 'js-beautify' // this is mostly to be able to get the returning function pretty
+import { filter } from './filter'
 
 var CALL = Function.prototype.call;
 var APPLY = Function.prototype.apply;
@@ -60,9 +61,14 @@ export default class ASTCompiler {
         var ast = this.astBuilder.ast(text);
         console.log('result of ast:', ast);
 
-        this.state = { body: [], nextId: 0, vars: [] };
+        this.state = {
+            body: [],
+            nextId: 0,
+            vars: [],
+            filters: {}
+        };
         this.recurse(ast);
-        var fnString = `var fn=function(${ASTCompiler.scopeId},${ASTCompiler.localsId}){${(this.state.vars.length ?
+        var fnString = `${this.filterPrefix()} var fn=function(${ASTCompiler.scopeId},${ASTCompiler.localsId}){${(this.state.vars.length ?
             `var ${this.state.vars.join(',')};` :
             '') + this.state.body.join('')
             }}; return fn;`;
@@ -71,6 +77,7 @@ export default class ASTCompiler {
             'ensureSafeObject',
             'ensureSafeFunction',
             'ifDefined',
+            'filter',
             fnString)
         // for pretty print resulting fn
         var prettyFn = beautify(fn.toString(), { indent_size: 2, space_in_empty_paren: true });
@@ -79,7 +86,8 @@ export default class ASTCompiler {
             ensureSafeMemberName,
             ensureSafeObject,
             ensureSafeFunction,
-            ifDefined
+            ifDefined,
+            filter
         );
     }
 
@@ -181,21 +189,31 @@ export default class ASTCompiler {
                 }
                 return this.assign(leftExpr, `ensureSafeObject(${this.recurse(ast.right)})`);
             case AST.CallExpression:
-                var callContext = {};
-                var callee = this.recurse(ast.callee, callContext);
-                var args = map(ast.arguments, bind(function (arg) {
-                    return `ensureSafeObject(${this.recurse(arg)})`;
-                }, this))
-                if (callContext.name) {
-                    this.addEnsureSafeObject(callContext.context);
-                    if (callContext.computed) {
-                        callee = this.computedMember(callContext.context, callContext.name);
-                    } else {
-                        callee = this.nonComputedMember(callContext.context, callContext.name);
+                var callContext, callee, args;
+                if (ast.filter) {
+                    callee = this.filter(ast.callee.name);
+                    args = map(ast.arguments, bind(function (arg) {
+                        return this.recurse(arg);
+                    }, this));
+                    return `${callee}(${args})`;
+                } else {
+                    callContext = {};
+                    callee = this.recurse(ast.callee, callContext);
+                    args = map(ast.arguments, bind(function (arg) {
+                        return `ensureSafeObject(${this.recurse(arg)})`;
+                    }, this));
+                    if (callContext.name) {
+                        this.addEnsureSafeObject(callContext.context);
+                        if (callContext.computed) {
+                            callee = this.computedMember(callContext.context, callContext.name);
+                        } else {
+                            callee = this.nonComputedMember(callContext.context, callContext.name);
+                        }
                     }
+                    this.addEnsureSafeFunction(callee);
+                    return `${callee} &&ensureSafeObject(${callee}(${args.join(',')}))`; // this means call the callee if the callee exists, so don't call the callee if the callee don't exist
                 }
-                this.addEnsureSafeFunction(callee);
-                return `${callee} &&ensureSafeObject(${callee}(${args.join(',')}))`; // this means call the callee if the callee exists, so don't call the callee if the callee don't exist
+                break;
             case AST.UnaryExpression:
                 return `${ast.operator}(${this.ifDefined(this.recurse(ast.argument), 0)})`
             case AST.BinaryExpression:
@@ -259,9 +277,11 @@ export default class ASTCompiler {
         return `(${left}).${value}()`
     }
 
-    nextId() {
+    nextId(skip) {
         var id = `${ASTCompiler.variablesId}${(this.state.nextId++)}`;
-        this.state.vars.push(id);
+        if (!skip) {
+            this.state.vars.push(id);
+        }
         return id;
     }
 
@@ -285,5 +305,23 @@ export default class ASTCompiler {
 
     ifDefined(expr, valueIfUndefined) {
         return `ifDefined(${expr}, ${this.escape(valueIfUndefined)})`
+    }
+
+    filter(name) {
+        if (!this.state.filters.hasOwnProperty(name)) {
+            this.state.filters[name] = this.nextId(true);
+        }
+        return this.state.filters[name];
+    }
+
+    filterPrefix() {
+        if (isEmpty(this.state.filters)){
+            return '';
+        } else {
+            var parts = map(this.state.filters, bind(function(varName, filterName){
+                return `${varName} = filter(${this.escape(filterName)})`;
+            }, this)); // it's binded because otherwise the escape would not be accessible (this inside a function !!)
+            return `var ${parts.join(',')};`;
+        }
     }
 }
