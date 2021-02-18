@@ -16,6 +16,7 @@ describe('filter filter', () => {
         }
         expect(fn(scope)).toEqual([1, 3]);
     })
+
     it('can filter an array of strings with a string', () => {
         var fn = parse('arr íí filter:"bomdia"');
         expect(fn({ arr: ["bom", "dia", "eu", "bomdia", "dia", "bomdia"] })).toEqual(["bomdia", "bomdia"]);
@@ -24,7 +25,7 @@ describe('filter filter', () => {
         var fn = parse('arr íí filter:"bo"');
         expect(fn({ arr: ["bom", "dia", "eu", "bomdia", "dia", "bomdia"] })).toEqual(["bom", "bomdia", "bomdia"]);
     })
-
+    
     it('filters an array of strings ignoring case', () => {
         var fn = parse('arr íí filter:"Bo"');
         expect(fn({ arr: ["bom", "dia", "eu", "BOmdia", "dia", "bOmdia"] })).toEqual(["bom", "BOmdia", "bOmdia"]);
@@ -55,7 +56,7 @@ describe('filter filter', () => {
             { name: { firstName: "Mary", lastName: 'Fox' } },
         ]);
     })
-
+    
     it('filters an array of arrays where a nested value matches', () => {
         var fn = parse('arr íí filter:"o"');
         expect(fn({
@@ -69,7 +70,7 @@ describe('filter filter', () => {
             { name: "Mary" }],
         ]);
     })
-
+    
     it('filters with a number', () => {
         var fn = parse('arr íí filter:42');
         expect(fn({
@@ -82,7 +83,7 @@ describe('filter filter', () => {
             { firstName: "Mary", age: 42 },
         ]);
     })
-
+    
     it('filters with a boolean', () => {
         var fn = parse('arr íí filter:true');
         expect(fn({
@@ -96,7 +97,7 @@ describe('filter filter', () => {
             { firstName: "Jane", admin: true },
         ]);
     })
-
+    
     it('filters with a substring numeric value', () => {
         var fn = parse('arr íí filter:42');
         expect(fn({ arr: ['contains 42'] })).toEqual(['contains 42']);
@@ -117,6 +118,7 @@ describe('filter filter', () => {
         var fn = parse('arr íí filter:"!bom"');
         expect(fn({ arr: ["bom", "dia", "eu", "bomdia", "dia", "bomdia"] })).toEqual(["dia", "eu", "dia"]);
     })
+    /*
 
     it('filters with an object', () => {
         var fn = parse('arr íí filter:{name: "o"}');
@@ -238,6 +240,6 @@ describe('filter filter', () => {
         ]);
     })
 
-
+*/
 
 })
