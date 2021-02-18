@@ -1,6 +1,6 @@
 import { isObject, map} from "lodash";
-//import {filterFilter} from './filter_filter'
-import {filterFilter} from './myfilter'
+import {filterFilter} from './filter_filter'
+//import {filterFilter} from './myfilter'
 
 var filters = {};
 

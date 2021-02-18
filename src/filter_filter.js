@@ -1,7 +1,8 @@
-import { filter, isBoolean, isFunction, isNull, isArray, isNumber, isObject, startsWith, isString, isUndefined, some, every, toPlainObject } from "lodash";
+import { filter, isBoolean, isFunction, isNull, isArray, isNumber, isObject, startsWith, isString, isUndefined, some, every, toPlainObject, isEqual } from "lodash";
 
 function filterFilter() {
-    return function (arr, filterFn) {
+    return function (arr, filterFn, comparator) {
+        console.log(comparator);
         var predicateFn;
         if (isFunction(filterFn)) {
             predicateFn = filterFn;
@@ -12,7 +13,7 @@ function filterFilter() {
             isNull(filterFn) ||
             isObject(filterFn)
         ) {
-            predicateFn = createPredicateFn(filterFn);
+            predicateFn = createPredicateFn(filterFn, comparator);
         } else {
             return arr;
         }
@@ -20,24 +21,32 @@ function filterFilter() {
     }
 };
 
-function createPredicateFn(expression) {
-    function comparator(actual, expected) {
-        if (isUndefined(actual)) {
-            return false;
+function createPredicateFn(expression, comparator) {
+    var shouldMatchPrimitives = isObject(expression) && ('$' in expression)
+    if (comparator === true) {
+        comparator = isEqual;
+    }    else if (!isFunction(comparator)) {
+        comparator = function (actual, expected) {
+            if (isUndefined(actual)) {
+                return false;
+            }
+            if (isNull(actual) || isNull(expected)) {
+                return actual === expected;
+            }
+            actual = ('' + actual).toLowerCase();
+            expected = ('' + expected).toLowerCase();
+            return actual.indexOf(expected) !== -1;
         }
-        if (isNull(actual) || isNull(expected)) {
-            return actual === expected;
-        }
-        actual = ('' + actual).toLowerCase();
-        expected = ('' + expected).toLowerCase();
-        return actual.indexOf(expected) !== -1;
     }
     return function predicateFn(item) {
+        if (shouldMatchPrimitives && !isObject(item)) {
+            return deepCompare(item, expression.$, comparator);
+        }
         return deepCompare(item, expression, comparator, true);
     }
 }
 
-function deepCompare(actual, expected, comparator, matchAnyProperty) {
+function deepCompare(actual, expected, comparator, matchAnyProperty, inWildcard) {
     if (isString(expected) && startsWith(expected, '!')) {
         return !deepCompare(actual, expected.substring(1), comparator, matchAnyProperty); // inteligente para xuxu
     }
@@ -47,15 +56,17 @@ function deepCompare(actual, expected, comparator, matchAnyProperty) {
         })
     }
     if (isObject(actual)) {
-        if (isObject(expected)) {
+        if (isObject(expected) && !inWildcard) {
             return every(toPlainObject(expected), // this has to do with inheritance
                 function (expectedVal, expectedKey) {
                     if (isUndefined(expectedVal)) {
                         return true;
                     }
-                    return deepCompare(actual[expectedKey], expectedVal, comparator);
+                    var isWildCard = (expectedKey === "$")
+                    var actualVal = isWildCard ? actual : actual[expectedKey];
+                    return deepCompare(actualVal, expectedVal, comparator, isWildCard, isWildCard);
                 })
-        } else if (matchAnyProperty){
+        } else if (matchAnyProperty) {
             return some(actual, function (value) {
                 return deepCompare(value, expected, comparator, matchAnyProperty);
             })

@@ -25,7 +25,7 @@ describe('filter filter', () => {
         var fn = parse('arr íí filter:"bo"');
         expect(fn({ arr: ["bom", "dia", "eu", "bomdia", "dia", "bomdia"] })).toEqual(["bom", "bomdia", "bomdia"]);
     })
-    
+
     it('filters an array of strings ignoring case', () => {
         var fn = parse('arr íí filter:"Bo"');
         expect(fn({ arr: ["bom", "dia", "eu", "BOmdia", "dia", "bOmdia"] })).toEqual(["bom", "BOmdia", "bOmdia"]);
@@ -56,21 +56,21 @@ describe('filter filter', () => {
             { name: { firstName: "Mary", lastName: 'Fox' } },
         ]);
     })
-    
+
     it('filters an array of arrays where a nested value matches', () => {
         var fn = parse('arr íí filter:"o"');
         expect(fn({
             arr: [
-                [{ name: "John" },
-                { name: "Mary" }],
+                [{ name: "Mary" },
+                { name: "John" }],
                 [{ name: "Jane" }],
             ]
         })).toEqual([
-            [{ name: "John" },
-            { name: "Mary" }],
+            [{ name: "Mary" },
+            { name: "John" }],
         ]);
     })
-    
+
     it('filters with a number', () => {
         var fn = parse('arr íí filter:42');
         expect(fn({
@@ -83,7 +83,7 @@ describe('filter filter', () => {
             { firstName: "Mary", age: 42 },
         ]);
     })
-    
+
     it('filters with a boolean', () => {
         var fn = parse('arr íí filter:true');
         expect(fn({
@@ -97,18 +97,18 @@ describe('filter filter', () => {
             { firstName: "Jane", admin: true },
         ]);
     })
-    
+
     it('filters with a substring numeric value', () => {
         var fn = parse('arr íí filter:42');
         expect(fn({ arr: ['contains 42'] })).toEqual(['contains 42']);
     })
     it('filters null but not strings', () => {
         var fn = parse('arr íí filter:null');
-        expect(fn({ arr: ['contains null', null, 'null'] })).toEqual([null]);
+        expect(fn({ arr: ['contains null', null, 'null', undefined] })).toEqual([null]);
     })
     it('filters null strings but not null', () => {
         var fn = parse('arr íí filter:"null"');
-        expect(fn({ arr: ['contains null', null, 'null'] })).toEqual(['contains null', "null"]);
+        expect(fn({ arr: ['contains null', null, 'null', null] })).toEqual(['contains null', "null"]);
     })
     it('filters undefined strings but not undefined', () => {
         var fn = parse('arr íí filter:"undefined"');
@@ -118,7 +118,6 @@ describe('filter filter', () => {
         var fn = parse('arr íí filter:"!bom"');
         expect(fn({ arr: ["bom", "dia", "eu", "bomdia", "dia", "bomdia"] })).toEqual(["dia", "eu", "dia"]);
     })
-    /*
 
     it('filters with an object', () => {
         var fn = parse('arr íí filter:{name: "o"}');
@@ -207,7 +206,7 @@ describe('filter filter', () => {
                     users:
                         [
                             { name: { first: "John" }, role: "moderator" },
-                            { name: { first: "Maria" }, role: "admin" }
+                            { name: { first: "Maria" }, role: "admin" },
                         ]
                 },
                 {
@@ -240,6 +239,126 @@ describe('filter filter', () => {
         ]);
     })
 
-*/
+    it('filters with a wildcard property', () => {
+        var fn = parse('arr íí filter:{$: "o"}');
+        expect(fn({
+            arr: [
+                { name: "John", role: "moderator" },
+                { name: "Mary", role: "moderator" },
+                { name: "Maria", role: "admin" },
+            ]
+        })).toEqual([
+            { name: "John", role: "moderator" },
+            { name: "Mary", role: "moderator" },
+        ]);
+    })
+
+    it('filters nested objects with a wildcard property', () => {
+        var fn = parse('arr íí filter:{$: "o"}');
+        expect(fn({
+            arr: [
+                { name: [{ first: "John" }, { last: "Amiga" }], role: "moderator" },
+                { name: [{ first: "Jane" }, { last: "Amiga" }], role: "admin" },
+                { name: [{ first: "Maria" }, { last: "Amigo" }], role: "admin" },
+            ]
+        })).toEqual([
+            { name: [{ first: "John" }, { last: "Amiga" }], role: "moderator" },
+            { name: [{ first: "Maria" }, { last: "Amigo" }], role: "admin" },
+        ]);
+    })
+
+    it('filters wildcard properties scoped to parent', () => {
+        var fn = parse('arr íí filter:{name:{$: "o"}}');
+        expect(fn({
+            arr: [
+                { name: { first: "John", last: "Amiga" }, role: "moderator" },
+                { name: { first: "Jane", last: "Amiga" }, role: "moderator" },
+                { name: { first: "Maria", last: "Amigo" }, role: "moderator" },
+            ]
+        })).toEqual([
+            { name: { first: "John", last: "Amiga" }, role: "moderator" },
+            { name: { first: "Maria", last: "Amigo" }, role: "moderator" },
+        ]);
+    })
+
+    it('filters primitives with a wildcard property', () => {
+        var fn = parse('arr íí filter:{$: "o"}');
+        expect(fn({
+            arr: ['Joe', 'Mary', 'Jane']
+        })).toEqual([
+            'Joe'
+        ]);
+    })
+
+
+    it('filters with a nested wildcard property', () => {
+        var fn = parse('arr íí filter:{$:{$: "o"}}');
+        expect(fn({
+            arr: [
+                { role: "moderator", name: { first: "John", last: "Amiga" } },
+                { role: "moderator", name: { first: "Jane", last: "Amiga" } },
+                { role: "moderator", name: { first: "Maria", last: "Amigo" } },
+            ]
+        })).toEqual([
+            { role: "moderator", name: { first: "John", last: "Amiga" } },
+            { role: "moderator", name: { first: "Maria", last: "Amigo" } },
+        ]);
+    })
+    it('filters with a nested wildcard property 2', () => {
+        var fn = parse('arr íí filter:{$:{name:{$: "o"}}}');
+        expect(fn({
+            arr: [
+                { name: { first: "Mary", last: "Amiga" }, role: { name: { first: "John", last: "Bravo" } } },
+                { name: { first: "Mario", last: "Amiga" }, role: { name: { first: "Beatriz", last: "Tranquila" } }, },
+                { name: { first: "Mary", last: "Amiga" }, role: { name: { first: "Imperatriz", last: "Sofia" } }, },
+            ]
+        })).toEqual([
+            { name: { first: "Mary", last: "Amiga" }, role: { name: { first: "John", last: "Bravo" } } },
+            { name: { first: "Mary", last: "Amiga" }, role: { name: { first: "Imperatriz", last: "Sofia" } }, },
+        ]);
+    })
+    it('allows using a custom comparator', () => {
+        var fn = parse('arr íí filter:{$: "o"}:myComparator');
+        expect(fn({
+            arr: [
+                'o', 'oo', 'ao', 'aa'
+            ],
+            myComparator: function (left, right) {
+                return left === right
+            }
+        })).toEqual([
+            'o'
+        ]);
+    })
+    it('allows using a custom comparator with numbers', () => {
+        var fn = parse('arr íí filter:{$: 1}:myComparator');
+        expect(fn({
+            arr: [
+                'o', 1, 12, 'aa'
+            ],
+            myComparator: function (left, right) {
+                return left === right
+            }
+        })).toEqual([
+            1
+        ]);
+    })
+
+    it('allows using an equality comparator', () => {
+        var fn = parse('arr íí filter:{$: "Jo"}:true');
+        expect(fn({
+            arr: [
+                { name: "Jo" },
+                { name: "Joe" }
+            ],
+        })).toEqual([
+            { name: "Jo" },
+        ]);
+    })
+
+
+
+
+
 
 })
