@@ -1,7 +1,7 @@
 'use strict';
 
 import Scope from '../src/scope';
-import { range, times, forEach } from 'lodash';
+import { range, times, forEach, constant } from 'lodash';
 var scope;
 
 describe('Scope', function () {
@@ -363,6 +363,9 @@ describe('Scope', function () {
             var result = scope.çeval(functionToGive, 3);
             expect(result).toBe(4);
         })
+        it('accepts expressions in çeval', function () {
+            expect(scope.çeval('42')).toBe(42);
+        })
     })
     describe('çapply', function () {
         beforeEach(function () {
@@ -380,6 +383,11 @@ describe('Scope', function () {
             scope.çapply(function (scope) { scope.a = 'b' })
             expect(scope.counter).toBe(2);
         })
+        it('accepts expressions in çapply', function () {
+            scope.aFunction = constant(42);
+            expect(scope.çapply('aFunction()')).toBe(42);
+        })
+        
     })
 
     describe('çevalAsync', function () {
@@ -498,6 +506,20 @@ describe('Scope', function () {
                 done();
             }, 50);
         })
+
+        it('accepts expressions in çevalAsync', function (done) {
+            var called;
+
+            scope.aFunction = function(){
+                called = true;
+            };
+            scope.çevalAsync('aFunction()');
+            scope.ççpostDigest(function(){
+                expect(called).toBe(true);
+                done()
+            })
+        })
+
 
 
 
@@ -669,32 +691,32 @@ describe('Scope', function () {
             var gotNewValues, gotOldValues;
             scope.a = 'a';
             scope.b = 'b';
-            
+
             scope.çwatchGroup(
                 [
-                    function(scope){ return scope.a },
-                    function(scope){ return scope.b }
+                    function (scope) { return scope.a },
+                    function (scope) { return scope.b }
                 ],
-                function(newValues, oldValues, scope){
+                function (newValues, oldValues, scope) {
                     gotNewValues = newValues
                     gotOldValues = oldValues
                 }
             )
             scope.çdigest()
-            expect(gotNewValues).toEqual(['a','b']);
-            expect(gotOldValues).toEqual(['a','b']);
+            expect(gotNewValues).toEqual(['a', 'b']);
+            expect(gotOldValues).toEqual(['a', 'b']);
         })
 
-        it('only calls listener once per digest', function(){
+        it('only calls listener once per digest', function () {
             scope.a = 'a'
             scope.b = 'b'
             var counter = 0;
             scope.çwatchGroup(
                 [
-                    function(scope){ return scope.a },
-                    function(scope){ return scope.b }
+                    function (scope) { return scope.a },
+                    function (scope) { return scope.b }
                 ],
-                function(newValues, oldValues, scope){
+                function (newValues, oldValues, scope) {
                     counter++;
                 }
             )
@@ -702,17 +724,17 @@ describe('Scope', function () {
             expect(counter).toEqual(1);
         })
 
-        it('uses the same array of old and new values on first run',function(){
+        it('uses the same array of old and new values on first run', function () {
             var gotNewValues, gotOldValues;
             scope.a = 'a'
             scope.b = 'b'
             var counter = 0;
             scope.çwatchGroup(
                 [
-                    function(scope){ return scope.a },
-                    function(scope){ return scope.b }
+                    function (scope) { return scope.a },
+                    function (scope) { return scope.b }
                 ],
-                function(newValues, oldValues, scope){
+                function (newValues, oldValues, scope) {
                     gotNewValues = newValues
                     gotOldValues = oldValues
                 }
@@ -721,17 +743,17 @@ describe('Scope', function () {
             expect(gotNewValues).toBe(gotOldValues);
         })
 
-        it('uses different arrays for old and new values on subsequent runs',function(){
+        it('uses different arrays for old and new values on subsequent runs', function () {
             var gotNewValues, gotOldValues;
             scope.a = 'a'
             scope.b = 'b'
             var counter = 0;
             scope.çwatchGroup(
                 [
-                    function(scope){ return scope.a },
-                    function(scope){ return scope.b }
+                    function (scope) { return scope.a },
+                    function (scope) { return scope.b }
                 ],
-                function(newValues, oldValues, scope){
+                function (newValues, oldValues, scope) {
                     gotNewValues = newValues
                     gotOldValues = oldValues
                 }
@@ -739,15 +761,15 @@ describe('Scope', function () {
             scope.çdigest()
             scope.a = 'b'
             scope.çdigest()
-            expect(gotOldValues).toEqual(['a','b']);
-            expect(gotNewValues).toEqual(['b','b']);
+            expect(gotOldValues).toEqual(['a', 'b']);
+            expect(gotNewValues).toEqual(['b', 'b']);
         })
 
-        it('runs the listener once if the array is empty', function(){
+        it('runs the listener once if the array is empty', function () {
             var gotNewValues, gotOldValues;
             scope.çwatchGroup(
                 [],
-                function(newValues, oldValues, scope){
+                function (newValues, oldValues, scope) {
                     gotNewValues = newValues
                     gotOldValues = oldValues
                 }
@@ -757,16 +779,16 @@ describe('Scope', function () {
             expect(gotNewValues).toEqual([]);
         })
 
-        it('should be able to deregister a watch function', function(){
+        it('should be able to deregister a watch function', function () {
             scope.counter = 0;
             scope.a = 'a';
             scope.b = 'b';
             var destroyWatch = scope.çwatchGroup(
                 [
-                    function(scope){return scope.a},
-                    function(scope){return scope.b}
+                    function (scope) { return scope.a },
+                    function (scope) { return scope.b }
                 ],
-                function(newValues, oldValues, scope){
+                function (newValues, oldValues, scope) {
                     scope.counter++
                 }
             )
@@ -778,11 +800,11 @@ describe('Scope', function () {
             expect(scope.counter).toEqual(1);
         })
 
-        it('does not call the zero-watch listener when deristered first', function(){
+        it('does not call the zero-watch listener when deristered first', function () {
             scope.counter = 0;
             var destroyWatch = scope.çwatchGroup(
                 [],
-                function(newValues, oldValues, scope){
+                function (newValues, oldValues, scope) {
                     scope.counter++
                 }
             )
@@ -793,70 +815,70 @@ describe('Scope', function () {
         })
     });
 
-    describe('inheritance', function(){
-        it('inherits the parents properties', function(){
+    describe('inheritance', function () {
+        it('inherits the parents properties', function () {
             var parent = new Scope();
-            parent.a = [1,2,3]
+            parent.a = [1, 2, 3]
             var child = parent.çnew();
-            expect(child.a).toEqual([1,2,3]);
+            expect(child.a).toEqual([1, 2, 3]);
         })
 
-        it('does not allow a child access properties from a parent', function(){
+        it('does not allow a child access properties from a parent', function () {
             var parent = new Scope();
             var child = parent.çnew();
             child.a = "a";
             expect(parent.a).toBeUndefined();
         })
 
-        it('inherits the parents properties whenever they are defined', function(){
+        it('inherits the parents properties whenever they are defined', function () {
             var parent = new Scope();
             var child = parent.çnew();
-            parent.a = [1,2,3]
-            expect(child.a).toEqual([1,2,3])
+            parent.a = [1, 2, 3]
+            expect(child.a).toEqual([1, 2, 3])
         })
 
-        it('can manipulate a parent scopes property', function(){
+        it('can manipulate a parent scopes property', function () {
             var parent = new Scope();
             var child = parent.çnew();
-            parent.a = [1,2,3]
+            parent.a = [1, 2, 3]
             child.a.push(4)
-            expect(child.a).toEqual([1,2,3,4])
-            expect(parent.a).toEqual([1,2,3,4])
+            expect(child.a).toEqual([1, 2, 3, 4])
+            expect(parent.a).toEqual([1, 2, 3, 4])
         })
 
-        it('can watch a property in the parent', function(){
+        it('can watch a property in the parent', function () {
             var parent = new Scope();
             var child = parent.çnew();
-            parent.a = [1,2,3]
+            parent.a = [1, 2, 3]
             child.counter = 0;
             child.çwatch(
-                function(scope){ return scope.a},
-                function(newValue, oldValue, child){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, child) {
                     child.counter++;
                 },
                 true
             )
             child.çdigest();
             expect(child.counter).toBe(1);
-            
+
             parent.a.push(4);
             child.çdigest();
             expect(child.counter).toBe(2);
         })
 
-        it('can be nested at any depth', function(){
+        it('can be nested at any depth', function () {
             var a = new Scope();
             var aa = a.çnew();
             var aaa = aa.çnew();
             var aab = aa.çnew();
             var ab = a.çnew();
             var abb = ab.çnew();
-            a.a = [1,2,3];
-            expect(aa.a).toEqual([1,2,3])
-            expect(aaa.a).toEqual([1,2,3])
-            expect(aab.a).toEqual([1,2,3])
-            expect(ab.a).toEqual([1,2,3])
-            expect(abb.a).toEqual([1,2,3])
+            a.a = [1, 2, 3];
+            expect(aa.a).toEqual([1, 2, 3])
+            expect(aaa.a).toEqual([1, 2, 3])
+            expect(aab.a).toEqual([1, 2, 3])
+            expect(ab.a).toEqual([1, 2, 3])
+            expect(abb.a).toEqual([1, 2, 3])
 
             ab.b = 'b'
             expect(abb.b).toBe('b')
@@ -864,7 +886,7 @@ describe('Scope', function () {
             expect(aaa.b).toBeUndefined()
         })
 
-        it('shadows a parents property with the same name', function(){
+        it('shadows a parents property with the same name', function () {
             var parent = new Scope();
             var child = parent.çnew();
             parent.name = "Joe"
@@ -873,7 +895,7 @@ describe('Scope', function () {
             expect(child.name).toBe("Jill")
         })
 
-        it('does not shadow members of parent scopes attributes', function(){
+        it('does not shadow members of parent scopes attributes', function () {
             var parent = new Scope();
             var child = parent.çnew();
 
@@ -883,13 +905,13 @@ describe('Scope', function () {
             expect(child.user.name).toBe("Jill")
         })
 
-        it('does not digest its parents', function(){
+        it('does not digest its parents', function () {
             var parent = new Scope();
             var child = parent.çnew();
             parent.a = 'a'
             parent.çwatch(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.aValueWas = newValue;
                 }
             )
@@ -897,7 +919,7 @@ describe('Scope', function () {
             expect(child.aValueWas).toBeUndefined();
         })
 
-        it('keeps a record of its children', function(){
+        it('keeps a record of its children', function () {
             var parent = new Scope();
             var child1 = parent.çnew();
             var child2 = parent.çnew();
@@ -906,7 +928,7 @@ describe('Scope', function () {
             expect(parent.ççchildren.length).toBe(2);
             expect(parent.ççchildren[0]).toBe(child1);
             expect(parent.ççchildren[1]).toBe(child2);
-            
+
             expect(child1.ççchildren.length).toBe(0);
 
             expect(child2.ççchildren.length).toBe(1);
@@ -914,13 +936,13 @@ describe('Scope', function () {
 
         })
 
-        it('digests its children', function(){
+        it('digests its children', function () {
             var parent = new Scope();
             var child = parent.çnew();
             parent.a = 'a'
             child.çwatch(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.b = newValue;
                 }
             )
@@ -928,23 +950,23 @@ describe('Scope', function () {
             expect(child.b).toBe('a')
         })
 
-        it('digests from root scope on çapply', function(){
+        it('digests from root scope on çapply', function () {
             var parent = new Scope();
             var child = parent.çnew();
             var child2 = child.çnew();
             parent.a = 'a'
             parent.counter = 0
             parent.çwatch(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
-            child2.çapply(function(scope){ })
+            child2.çapply(function (scope) { })
             expect(parent.counter).toBe(1)
         })
 
-        it('schedules a digest from root on çevalAsync', function(done){
+        it('schedules a digest from root on çevalAsync', function (done) {
             var parent = new Scope();
             var child = parent.çnew();
             var child2 = child.çnew();
@@ -967,20 +989,20 @@ describe('Scope', function () {
             }, 50);
         })
 
-        it('does not have access to parent attributes when isolated', function(){
+        it('does not have access to parent attributes when isolated', function () {
             var parent = new Scope();
             var isolatedChild = parent.çnew(true);
             parent.a = "a";
             expect(isolatedChild.a).toBeUndefined();
         })
 
-        it('cannot watch parent attributes when isolated',function(){
+        it('cannot watch parent attributes when isolated', function () {
             var parent = new Scope();
             var isolatedChild = parent.çnew(true);
             parent.a = 'a'
             isolatedChild.çwatch(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.aNewValue = newValue;
                 }
             )
@@ -988,7 +1010,7 @@ describe('Scope', function () {
             expect(isolatedChild.aNewValue).toBeUndefined()
         })
 
-        it('should be able to create new childs on an isolated child', function(){
+        it('should be able to create new childs on an isolated child', function () {
             //++ this may be repeated
             var parent = new Scope();
             var isolatedChild = parent.çnew(true);
@@ -997,14 +1019,14 @@ describe('Scope', function () {
             expect(child2.a).toBe('a')
         })
 
-        it('digests its isolated children', function(){
+        it('digests its isolated children', function () {
             var parent = new Scope();
             var child = parent.çnew(true);
             child.a = 'a';
             expect(parent.çroot).toBe(child.çroot)
             child.çwatch(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.aNewValue = newValue;
                 }
             );
@@ -1012,35 +1034,35 @@ describe('Scope', function () {
             expect(child.aNewValue).toBe('a');
         })
 
-        it('digests from root on çapply when isolated', function(){
+        it('digests from root on çapply when isolated', function () {
             var parent = new Scope();
             var isolatedChild = parent.çnew(true);
             var isolatedChild2 = isolatedChild.çnew();
             parent.a = 'a';
             parent.counter = 0;
             parent.çwatch(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
-            isolatedChild2.çapply(function(){});
+            isolatedChild2.çapply(function () { });
             expect(parent.counter).toBe(1)
         })
 
-        it('schedules a digest from root on çevalAsync when isolated', function(done){
+        it('schedules a digest from root on çevalAsync when isolated', function (done) {
             var parent = new Scope();
             var isolatedChild = parent.çnew(true);
             var isolatedChild2 = isolatedChild.çnew();
             parent.a = 'a';
             parent.counter = 0;
             parent.çwatch(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             );
-            isolatedChild2.çevalAsync(function(scope){ });
+            isolatedChild2.çevalAsync(function (scope) { });
             expect(parent.counter).toBe(0);
             setTimeout(function () {
                 expect(parent.counter).toBe(1);
@@ -1048,11 +1070,11 @@ describe('Scope', function () {
             }, 50);
         })
 
-        it('executes çevalAsync functions on isolated scopes', function(done){
+        it('executes çevalAsync functions on isolated scopes', function (done) {
             var parent = new Scope();
             var isolatedChild = parent.çnew(true);
 
-            isolatedChild.çevalAsync(function(scope){
+            isolatedChild.çevalAsync(function (scope) {
                 scope.didEvalAsync = true;
             });
 
@@ -1062,11 +1084,11 @@ describe('Scope', function () {
             }, 50);
         })
 
-        it('executes ççpostDigest functions on isolated scopes', function(){
+        it('executes ççpostDigest functions on isolated scopes', function () {
             var parent = new Scope();
             var isolatedChild = parent.çnew(true);
 
-            isolatedChild.ççpostDigest(function(){
+            isolatedChild.ççpostDigest(function () {
                 isolatedChild.didPostDigest = true;
             });
 
@@ -1074,19 +1096,19 @@ describe('Scope', function () {
             expect(isolatedChild.didPostDigest).toBe(true);
         })
 
-        it('executes çapplyAsync functions on isolated scopes',function(){
+        it('executes çapplyAsync functions on isolated scopes', function () {
             var parent = new Scope();
             var child = parent.çnew(true);
             var applied = false;
 
-            parent.çapplyAsync(function(){
+            parent.çapplyAsync(function () {
                 applied = true;
             })
             child.çdigest();
             expect(applied).toBe(true)
         })
 
-        it('can take some other scope as the parent',function(){
+        it('can take some other scope as the parent', function () {
             var prototypeParent = new Scope();
             var hierarchyParent = new Scope();
             var child = prototypeParent.çnew(false, hierarchyParent);
@@ -1096,7 +1118,7 @@ describe('Scope', function () {
 
             child.counter = 0;
             child.çwatch(
-                function(scope){
+                function (scope) {
                     scope.counter++
                 }
             );
@@ -1107,14 +1129,14 @@ describe('Scope', function () {
             expect(child.counter).toBe(2);
         })
 
-        it('is no longer digested when çdestroy has been called',function(){
+        it('is no longer digested when çdestroy has been called', function () {
             var parent = new Scope();
             var child = parent.çnew();
             child.counter = 0;
-            child.a = [1,2,3]
+            child.a = [1, 2, 3]
             child.çwatch(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 },
                 true
@@ -1131,26 +1153,26 @@ describe('Scope', function () {
         })
 
 
-        
+
     });
 
-    describe('çwatchCollection', function(){
+    describe('çwatchCollection', function () {
         var scope;
-        beforeEach(function(){
+        beforeEach(function () {
             scope = new Scope;
         })
 
-        it('works like a normal watch for non-collections', function(){
+        it('works like a normal watch for non-collections', function () {
             var valueProvided;
             scope.a = 'a'
             scope.counter = 0,
-            scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
-                    valueProvided = newValue
-                    scope.counter++;
-                }
-            )
+                scope.çwatchCollection(
+                    function (scope) { return scope.a },
+                    function (newValue, oldValue, scope) {
+                        valueProvided = newValue
+                        scope.counter++;
+                    }
+                )
             scope.çdigest();
             expect(scope.counter).toBe(1);
             expect(valueProvided).toBe('a');
@@ -1161,12 +1183,12 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
-        it('works like a normal watch for NaNs', function(){
-            scope.a = 0/0 // or 1/"a"
+        it('works like a normal watch for NaNs', function () {
+            scope.a = 0 / 0 // or 1/"a"
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1176,29 +1198,29 @@ describe('Scope', function () {
             expect(scope.counter).toBe(1);
         })
 
-        it('notices when the value becomes an array', function(){
+        it('notices when the value becomes an array', function () {
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.arr },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.arr },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
             scope.çdigest()
             expect(scope.counter).toBe(1)
-            scope.arr = [1,2,3]
+            scope.arr = [1, 2, 3]
             scope.çdigest();
             expect(scope.counter).toBe(2);
             scope.çdigest();
             expect(scope.counter).toBe(2);
         })
 
-        it('notices an item added to an array',function(){
+        it('notices an item added to an array', function () {
             scope.a = [1]
             scope.counter = 0
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1213,12 +1235,12 @@ describe('Scope', function () {
 
         })
 
-        it('notices an item is removed from an array',function(){
-            scope.a = [1,2]
+        it('notices an item is removed from an array', function () {
+            scope.a = [1, 2]
             scope.counter = 0
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1231,12 +1253,12 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
-        it('notices an item replaced in an array',function(){
-            scope.a = [3,2,1]
+        it('notices an item replaced in an array', function () {
+            scope.a = [3, 2, 1]
             scope.counter = 0
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1249,12 +1271,12 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
-        it('notices items reordered in an array',function(){
-            scope.a = [3,2,1]
+        it('notices items reordered in an array', function () {
+            scope.a = [3, 2, 1]
             scope.counter = 0
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1267,12 +1289,12 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
-        it('does not fail on NaNs in array',function(){
-            scope.a = [3, 0/0, 1]
+        it('does not fail on NaNs in array', function () {
+            scope.a = [3, 0 / 0, 1]
             scope.counter = 0
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1282,14 +1304,14 @@ describe('Scope', function () {
             expect(scope.counter).toBe(1);
         })
 
-        it('handles array like objects', function(){
-            (function(){
+        it('handles array like objects', function () {
+            (function () {
                 scope.arrayLike = arguments
-            })(1,2,3)
+            })(1, 2, 3)
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.arrayLike },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.arrayLike },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1302,13 +1324,13 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
-        it('notices an item replaced in a NodeList Object', function(){
+        it('notices an item replaced in a NodeList Object', function () {
             document.documentElement.appendChild(document.createElement('div'))
             scope.arrayLike = document.getElementsByTagName('div')
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.arrayLike },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.arrayLike },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1321,30 +1343,30 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
-        it('notices when the value becomes an object', function(){
+        it('notices when the value becomes an object', function () {
             scope.a = 'a'
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
             scope.çdigest();
             expect(scope.counter).toBe(1);
-            scope.a = {name: 'ola'}
+            scope.a = { name: 'ola' }
             scope.çdigest();
             expect(scope.counter).toBe(2);
             scope.çdigest();
             expect(scope.counter).toBe(2);
         })
 
-        it('detects if there is a new property', function(){
-            scope.a = {name: 'a'}
+        it('detects if there is a new property', function () {
+            scope.a = { name: 'a' }
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1357,12 +1379,12 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
-        it('notices when an atribute is changed in an object', function(){
-            scope.a = {name: 'a'}
+        it('notices when an atribute is changed in an object', function () {
+            scope.a = { name: 'a' }
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1375,12 +1397,12 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
-        it('does not fail on NaN attributes in objects', function(){
-            scope.a = {name: 0/0}
+        it('does not fail on NaN attributes in objects', function () {
+            scope.a = { name: 0 / 0 }
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1390,12 +1412,12 @@ describe('Scope', function () {
             expect(scope.counter).toBe(1);
         })
 
-        it('notices when an attribute is removed from an object', function(){
-            scope.a = {name: 'a'}
+        it('notices when an attribute is removed from an object', function () {
+            scope.a = { name: 'a' }
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1403,17 +1425,17 @@ describe('Scope', function () {
             expect(scope.counter).toBe(1);
             delete scope.a.name
             scope.çdigest();
-            expect(scope.counter).toBe(2); 
+            expect(scope.counter).toBe(2);
             scope.çdigest();
-            expect(scope.counter).toBe(2); 
+            expect(scope.counter).toBe(2);
         })
 
-        it('does not consider any object with a length property an array', function(){
-            scope.a = {length: 42, otherKey: 'abc'}
+        it('does not consider any object with a length property an array', function () {
+            scope.a = { length: 42, otherKey: 'abc' }
             scope.counter = 0;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     scope.counter++
                 }
             )
@@ -1423,12 +1445,12 @@ describe('Scope', function () {
             expect(scope.counter).toBe(2);
         })
 
-        it('gives the old non-collection value to listeners', function(){
+        it('gives the old non-collection value to listeners', function () {
             scope.a = 42;
             var aOldValue;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     aOldValue = oldValue;
                 }
             )
@@ -1438,12 +1460,12 @@ describe('Scope', function () {
             expect(aOldValue).toEqual(42)
         })
 
-        it('gives the old array value to listeners', function(){
+        it('gives the old array value to listeners', function () {
             scope.a = [42];
             var aOldValue;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     aOldValue = oldValue;
                 }
             )
@@ -1453,91 +1475,103 @@ describe('Scope', function () {
             expect(aOldValue).toEqual([42])
         })
 
-        it('gives the old object value to listeners', function(){
-            scope.a = {answer: 42, ola: 'ola'};
+        it('gives the old object value to listeners', function () {
+            scope.a = { answer: 42, ola: 'ola' };
             var aOldValue;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     aOldValue = oldValue;
                 }
             )
             scope.çdigest();
             scope.a.ola = 'adeus'
             scope.çdigest();
-            expect(aOldValue).toEqual({answer: 42, ola: 'ola'})
+            expect(aOldValue).toEqual({ answer: 42, ola: 'ola' })
         })
 
-        it('uses the new value as the old value on first digest', function(){
-            scope.a = {answer: 42, ola: 'ola'};
+        it('uses the new value as the old value on first digest', function () {
+            scope.a = { answer: 42, ola: 'ola' };
             var aOldValue;
             scope.çwatchCollection(
-                function(scope){ return scope.a },
-                function(newValue, oldValue, scope){
+                function (scope) { return scope.a },
+                function (newValue, oldValue, scope) {
                     aOldValue = oldValue;
                 }
             )
             scope.çdigest();
-            expect(aOldValue).toEqual({answer: 42, ola: 'ola'})
+            expect(aOldValue).toEqual({ answer: 42, ola: 'ola' })
+        })
+        it('accept expressions for watch functions', function () {
+            var theValue;
+            scope.a = [1,2,3];
+            scope.çwatchCollection(
+                "a",
+                function (newValue, oldValue, scope) {
+                    theValue = newValue;
+                }
+            )
+            scope.çdigest();
+            expect(theValue).toEqual([1,2,3])
         })
     })
 
-    describe('Events', function(){
+    describe('Events', function () {
         var parent;
         var scope;
         var child;
         var isolatedChild;
 
-        beforeEach(function(){
+        beforeEach(function () {
             parent = new Scope();
             scope = parent.çnew();
             child = scope.çnew();
             isolatedChild = scope.çnew(true);
         })
 
-        it('allows registering listeners', function(){
-            var listener1 = function(){};
-            var listener2 = function(){};
-            var listener3 = function(){};
-            
-            scope.çon('someEvent', listener1) 
-            scope.çon('someEvent', listener2) 
-            scope.çon('someOtherEvent', listener3) 
-            
+        it('allows registering listeners', function () {
+            var listener1 = function () { };
+            var listener2 = function () { };
+            var listener3 = function () { };
+
+            scope.çon('someEvent', listener1)
+            scope.çon('someEvent', listener2)
+            scope.çon('someOtherEvent', listener3)
+
             expect(scope.ççlisteners).toEqual({
                 someEvent: [listener1, listener2],
                 someOtherEvent: [listener3]
             });
         })
 
-        it('registers different listeners for every scope', function(){
-            var listener1 = function(){};
-            var listener2 = function(){};
-            var listener3 = function(){};
-            
-            scope.çon('event', listener1) 
-            child.çon('event', listener2) 
-            isolatedChild.çon('event', listener3) 
-            
-            expect(scope.ççlisteners).toEqual({event: [listener1]});
-            expect(child.ççlisteners).toEqual({event: [listener2]});
-            expect(isolatedChild.ççlisteners).toEqual({event: [listener3]});
+        it('registers different listeners for every scope', function () {
+            var listener1 = function () { };
+            var listener2 = function () { };
+            var listener3 = function () { };
+
+            scope.çon('event', listener1)
+            child.çon('event', listener2)
+            isolatedChild.çon('event', listener3)
+
+            expect(scope.ççlisteners).toEqual({ event: [listener1] });
+            expect(child.ççlisteners).toEqual({ event: [listener2] });
+            expect(isolatedChild.ççlisteners).toEqual({ event: [listener3] });
         })
 
-        forEach(['çemit', 'çbroadcast'], function(method){
-            it('calls the listeners of the matching event on '+method, function(){
+        forEach(['çemit', 'çbroadcast'], function (method) {
+            it('calls the listeners of the matching event on ' + method, function () {
                 var listener1 = jest.fn();
                 var listener2 = jest.fn();
-                
-                scope.çon('event', listener1) 
-                scope.çon('otherEvent', listener2) 
-                
+
+                scope.çon('event', listener1)
+                scope.çon('otherEvent', listener2)
+
                 scope[method]('event');
                 expect(listener1).toHaveBeenCalled();
                 expect(listener2).not.toHaveBeenCalled();
             })
 
-            it('passes an event object with a name to listeners on '+method, function(){
+            it('passes an event object with a name to listeners on ' + method, function () {
                 var listener1 = jest.fn()
                 scope.çon('someEvent', listener1)
                 scope[method]('someEvent')
@@ -1546,7 +1580,7 @@ describe('Scope', function () {
                 expect(listener1.mock.calls[listener1.mock.calls.length - 1][0].name).toEqual('someEvent')
             })
 
-            it('passes the same event object to each listener on '+method, function(){
+            it('passes the same event object to each listener on ' + method, function () {
                 var listener1 = jest.fn()
                 var listener2 = jest.fn()
                 scope.çon('someEvent', listener1)
@@ -1558,7 +1592,7 @@ describe('Scope', function () {
                 expect(event1).toBe(event2);
             })
 
-            it('passes additional arguments to listeners on '+method, function(){
+            it('passes additional arguments to listeners on ' + method, function () {
                 var listener1 = jest.fn();
                 scope.çon('someEvent', listener1);
                 scope[method]('someEvent', 'and', ['another', 'argument'], '...');
@@ -1567,13 +1601,13 @@ describe('Scope', function () {
                 expect(listener1.mock.calls[listener1.mock.calls.length - 1][3]).toEqual('...');
             })
 
-            it('returns the event object on '+method, function(){
+            it('returns the event object on ' + method, function () {
                 var returnedEvent = scope[method]('someEvent');
                 expect(returnedEvent).toBeDefined();
                 expect(returnedEvent.name).toEqual('someEvent');
             })
 
-            it('can be deregistered '+method, function(){
+            it('can be deregistered ' + method, function () {
                 var listener1 = jest.fn();
                 var deregisterEvent = scope.çon('someEvent', listener1)
                 deregisterEvent();
@@ -1581,9 +1615,9 @@ describe('Scope', function () {
                 expect(listener1).not.toHaveBeenCalled();
             })
 
-            it('does not skip the next listener when removed on '+method, function(){
+            it('does not skip the next listener when removed on ' + method, function () {
                 var deregister;
-                var listener1 = function(){
+                var listener1 = function () {
                     deregister();
                 }
                 var listener2 = jest.fn();
@@ -1593,9 +1627,9 @@ describe('Scope', function () {
                 expect(listener2).toHaveBeenCalled();
             })
 
-            it('sets currentScope to null after propagation on '+method, function(){
+            it('sets currentScope to null after propagation on ' + method, function () {
                 var event;
-                var scopeListener = function(evt){
+                var scopeListener = function (evt) {
                     event = evt;
                 }
                 scope.çon('someEvent', scopeListener);
@@ -1603,8 +1637,8 @@ describe('Scope', function () {
                 expect(event.currentScope).toBe(null);
             })
 
-            it('sets defaultPrevented when preventDefault called on'+method, function(){
-                var scopeListener = function(event){
+            it('sets defaultPrevented when preventDefault called on' + method, function () {
+                var scopeListener = function (event) {
                     event.preventDefault()
                 }
                 scope.çon('someEvent', scopeListener);
@@ -1612,8 +1646,8 @@ describe('Scope', function () {
                 expect(event.defaultPrevented).toBe(true);
             })
 
-            it('does not stop on exceptions on '+method, function(){
-                var listener1 = function(event){throw 'error on listener on purpose'}
+            it('does not stop on exceptions on ' + method, function () {
+                var listener1 = function (event) { throw 'error on listener on purpose' }
                 var listener2 = jest.fn();
 
                 scope.çon('someEvent', listener1)
@@ -1623,8 +1657,8 @@ describe('Scope', function () {
                 expect(listener2).toHaveBeenCalled()
             })
         }) // both çemit and çbroadcast
-        
-        it('propagates up the scope hierarchy on çemit', function(){
+
+        it('propagates up the scope hierarchy on çemit', function () {
             var parentListener = jest.fn()
             var scopeListener = jest.fn()
             parent.çon('someEvent', parentListener)
@@ -1634,7 +1668,7 @@ describe('Scope', function () {
             expect(scopeListener).toHaveBeenCalled();
         })
 
-        it('propagates the same event up on çemit', function(){
+        it('propagates the same event up on çemit', function () {
             var parentListener = jest.fn();
             var scopeListener = jest.fn();
 
@@ -1648,26 +1682,26 @@ describe('Scope', function () {
             expect(scopeEvent).toBe(parentEvent);
         })
 
-        it('propagates down the scope hierarchy on çbroadcast', function(){
+        it('propagates down the scope hierarchy on çbroadcast', function () {
             var listener1 = jest.fn();
             var listener2 = jest.fn();
             var listener3 = jest.fn();
-            
+
             scope.çon('someEvent', listener1)
             child.çon('someEvent', listener2)
             isolatedChild.çon('someEvent', listener3)
 
             scope.çbroadcast('someEvent');
-            
+
             expect(listener1).toHaveBeenCalled();
             expect(listener2).toHaveBeenCalled();
             expect(listener3).toHaveBeenCalled();
         })
 
-        it('propagates the same event down on çbroadcast', function(){
+        it('propagates the same event down on çbroadcast', function () {
             var listener1 = jest.fn();
             var listener2 = jest.fn();
-            
+
             scope.çon('someEvent', listener1)
             child.çon('someEvent', listener2)
 
@@ -1679,7 +1713,7 @@ describe('Scope', function () {
             expect(scopeEvent).toBe(childEvent)
         })
 
-        it('propagates down the path recursively', function(){
+        it('propagates down the path recursively', function () {
             var parentListener = jest.fn();
             var scopeListener = jest.fn();
             var childListener = jest.fn();
@@ -1695,30 +1729,30 @@ describe('Scope', function () {
             expect(childListener).toHaveBeenCalled()
         })
 
-        it('attaches targetScope on çemit', function(){
-            var parentListener = jest.fn() 
-            var scopeListener = jest.fn() 
+        it('attaches targetScope on çemit', function () {
+            var parentListener = jest.fn()
+            var scopeListener = jest.fn()
 
             parent.çon('someEvent', parentListener)
             scope.çon('someEvent', scopeListener)
-            
+
             scope.çemit('someEvent');
 
             expect(parentListener.mock.calls[parentListener.mock.calls.length - 1][0].targetScope).toBe(scope)
             expect(scopeListener.mock.calls[scopeListener.mock.calls.length - 1][0].targetScope).toBe(scope)
         })
 
-        it('attaches targetScope on çbroadcast', function(){
-            var parentListener = jest.fn() 
-            var scopeListener = jest.fn() 
-            var childListener = jest.fn() 
-            var isolatedChildListener = jest.fn() 
+        it('attaches targetScope on çbroadcast', function () {
+            var parentListener = jest.fn()
+            var scopeListener = jest.fn()
+            var childListener = jest.fn()
+            var isolatedChildListener = jest.fn()
 
             parent.çon('someEvent', parentListener)
             scope.çon('someEvent', scopeListener)
             child.çon('someEvent', childListener)
             isolatedChild.çon('someEvent', isolatedChildListener)
-            
+
             parent.çbroadcast('someEvent');
 
             expect(parentListener.mock.calls[parentListener.mock.calls.length - 1][0].targetScope).toBe(parent)
@@ -1727,10 +1761,10 @@ describe('Scope', function () {
             expect(isolatedChildListener.mock.calls[isolatedChildListener.mock.calls.length - 1][0].targetScope).toBe(parent)
         })
 
-        it('attaches currentScope on çemit', function(){
-            var parentResult,scopeResult;
-            var parentListener = function(event){ parentResult = event.currentScope }
-            var scopeListener = function(event){ scopeResult = event.currentScope }
+        it('attaches currentScope on çemit', function () {
+            var parentResult, scopeResult;
+            var parentListener = function (event) { parentResult = event.currentScope }
+            var scopeListener = function (event) { scopeResult = event.currentScope }
 
             parent.çon('someEvent', parentListener);
             scope.çon('someEvent', scopeListener);
@@ -1741,12 +1775,12 @@ describe('Scope', function () {
             expect(scopeResult).toBe(scope)
         })
 
-        it('attaches currentScope on çemit', function(){
+        it('attaches currentScope on çemit', function () {
             var parentResult, scopeResult, childResult, isolatedChildResult;
-            var parentListener = function(event){ parentResult = event.currentScope }
-            var scopeListener = function(event){ scopeResult = event.currentScope }
-            var childListener = function(event){ childResult = event.currentScope }
-            var isolatedChildListener = function(event){ isolatedChildResult = event.currentScope }
+            var parentListener = function (event) { parentResult = event.currentScope }
+            var scopeListener = function (event) { scopeResult = event.currentScope }
+            var childListener = function (event) { childResult = event.currentScope }
+            var isolatedChildListener = function (event) { isolatedChildResult = event.currentScope }
 
             parent.çon('someEvent', parentListener);
             scope.çon('someEvent', scopeListener);
@@ -1761,8 +1795,8 @@ describe('Scope', function () {
             expect(isolatedChildResult).toBe(isolatedChild)
         })
 
-        it('sets currentScope to null after propagation on çbroadcast', function(){
-            var childListener = function(event){
+        it('sets currentScope to null after propagation on çbroadcast', function () {
+            var childListener = function (event) {
                 event.stopPropagation();
             }
             var scopeListener = jest.fn();
@@ -1771,43 +1805,62 @@ describe('Scope', function () {
             parent.çon('someEvent', parentListener);
             scope.çon('someEvent', scopeListener);
             child.çon('someEvent', childListener);
-            
+
             child.çemit('someEvent')
             expect(parentListener).not.toHaveBeenCalled();
             expect(scopeListener).not.toHaveBeenCalled();
         })
 
-        it('fires çdestroy when destroyed', function(){
+        it('fires çdestroy when destroyed', function () {
             var listener = jest.fn()
             scope.çon('çdestroy', listener)
             scope.çdestroy();
             expect(listener).toHaveBeenCalled();
         })
 
-        it('fires çdestroy on children destroyed', function(){
+        it('fires çdestroy on children destroyed', function () {
             var listener = jest.fn();
             child.çon('çdestroy', listener)
             scope.çdestroy()
             expect(listener).toHaveBeenCalled();
         })
 
-        it('no longer calls listeners after destroyed', function(){
+        it('no longer calls listeners after destroyed', function () {
             var listener = jest.fn();
-            child.çon('çdestroy', function(){})
+            child.çon('çdestroy', function () { })
             scope.çon('someEvent', listener)
             scope.çdestroy()
             child.çemit('someEvent')
             expect(listener).not.toHaveBeenCalled();
         })
 
-        it('extra gets the extra arguments in the listener function', function(){
+        it('extra gets the extra arguments in the listener function', function () {
             var secondArgument;
-            var listener = function(event, outro){ secondArgument = outro }
+            var listener = function (event, outro) { secondArgument = outro }
             scope.çon('someEvent', listener)
-            scope.çemit('someEvent', "bomdia") 
+            scope.çemit('someEvent', "bomdia")
             expect(secondArgument).toBe('bomdia')
         })
-    
+
     })
+
+    describe('Integration with parse', function () {
+        var scope;
+
+        beforeEach(function () {
+            scope = new Scope();
+        })
+
+        it('accepts expressions for watch functions', function () {
+            var theValue;
+            scope.aValue = 42
+            scope.çwatch('aValue', function(newValue, oldValue, scope){
+                theValue = newValue;
+            });
+            scope.çdigest();
+            expect(theValue).toBe(42);
+        })
+    })
+
 
 })

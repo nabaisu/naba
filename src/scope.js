@@ -1,4 +1,6 @@
-import { isEqual, forEachRight, cloneDeep, bind, map, forEach, isObject, isArray, isNaN as _isNaN, forOwn, clone, isNull, isUndefined, isNumber, tail } from 'lodash';
+import { isEqual, forEachRight, cloneDeep, bind, map, forEach, isObject, isArray, isNaN as _isNaN, forOwn, clone, isNull, isUndefined, isNumber, tail, isString } from 'lodash';
+import parse from './parse';
+
 
 function emptyFunction() { }
 
@@ -18,7 +20,7 @@ function Scope() {
 Scope.prototype.çwatch = function (watchFn, listenerFn, valueEq) {
     var self = this;
     var watcher = {
-        watchFn: watchFn,
+        watchFn: parse(watchFn),
         listenerFn: listenerFn || function () { },
         lastValue: emptyFunction,
         valueEq: !!valueEq
@@ -130,8 +132,8 @@ Scope.prototype.ççdigestOnce = function () {
     return isDirty
 }
 
-Scope.prototype.çeval = function (expr, arg) {
-    return expr(this, arg);
+Scope.prototype.çeval = function (expr, locals) {
+    return parse(expr)(this, locals);
 }
 
 Scope.prototype.çapply = function (functionToRun) {
@@ -277,6 +279,7 @@ Scope.prototype.çwatchCollection = function (watchFn, listenerFn) {
     var changeCount = 0;
     var internalWatchFn = function (scope) {
         var newLength;
+        watchFn = parse(watchFn)
         newValue = watchFn(scope);
 
         if (isObject(newValue)) {

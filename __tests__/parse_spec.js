@@ -637,4 +637,11 @@ describe('parse', () => {
             expect(parse('a = 1; b = 2; a + b')({})).toBe(3);
         })
     })
+
+    describe('Integration with Scopes', () => {
+        it('returns the function itself when given one', () => {
+            var fn = function(){}
+            expect(parse(fn)).toBe(fn);
+        })
+    })
 })
