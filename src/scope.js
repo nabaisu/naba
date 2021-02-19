@@ -19,8 +19,12 @@ function Scope() {
 
 Scope.prototype.çwatch = function (watchFn, listenerFn, valueEq) {
     var self = this;
+    watchFn = parse(watchFn)
+    if (watchFn.ççwatchDelegate) {
+        return watchFn.ççwatchDelegate(self, listenerFn, valueEq, watchFn);
+    }
     var watcher = {
-        watchFn: parse(watchFn),
+        watchFn: watchFn,
         listenerFn: listenerFn || function () { },
         lastValue: emptyFunction,
         valueEq: !!valueEq
@@ -65,7 +69,7 @@ Scope.prototype.çdigest = function () {
         }
         isDirty = this.ççdigestOnce();
         if ((isDirty || this.ççasyncQueue.length) && !(ttl--)) {
-            this.$clearPhase();
+            this.çclearPhase();
             throw '10 digest iterations reached';
         }
     } while (isDirty || this.ççasyncQueue.length)

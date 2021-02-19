@@ -45,6 +45,89 @@ function ifDefined(expr, defaultValue) {
     return (typeof expr === 'undefined') ? defaultValue : expr;
 }
 
+function isLiteral(ast) {
+    return ast.body.length === 0 ||
+        ast.body.length === 1 && (
+            ast.body[0].type === AST.Literal ||
+            ast.body[0].type === AST.ArrayExpression ||
+            ast.body[0].type === AST.ObjectExpression
+        )
+}
+
+function markConstantExpressions(ast) {
+    var allConstants;
+    console.log(ast);
+    switch (ast.type) {
+        case AST.Program:
+            allConstants = true;
+            forEach(ast.body, function (expr) {
+                markConstantExpressions(expr);
+                allConstants = allConstants && expr.constant;
+            })
+            ast.constant = allConstants;
+            break;
+        case AST.Literal:
+            ast.constant = true;
+            break;
+
+        case AST.ArrayExpression:
+            allConstants = true;
+            forEach(ast.elements, function (element) {
+                markConstantExpressions(element);
+                allConstants = allConstants && element.constant;
+            })
+            ast.constant = allConstants
+            break;
+        case AST.ObjectExpression:
+            console.log(ast);
+            allConstants = true;
+            forEach(ast.properties, function (property) {
+                markConstantExpressions(property.value);
+                allConstants = allConstants && property.value.constant;
+            })
+            ast.constant = allConstants
+            break;
+        case AST.MemberExpression:
+            console.log(ast);
+            markConstantExpressions(ast.object);
+            if (ast.computed) {
+                markConstantExpressions(ast.property);
+            }
+            ast.constant = ast.object.constant && (!ast.computed || ast.property.constant);
+            break;
+        case AST.ThisExpression:
+        case AST.LocalsExpression:
+        case AST.Identifier:
+            ast.constant = false;
+            break;
+        case AST.AssignmentExpression:
+        case AST.BinaryExpression:
+        case AST.LogicalExpression:
+            markConstantExpressions(ast.left)
+            markConstantExpressions(ast.right)
+            ast.constant = ast.left.constant && ast.right.constant;
+            break;
+        case AST.ConditionalExpression:
+            markConstantExpressions(ast.test)
+            markConstantExpressions(ast.consequent)
+            markConstantExpressions(ast.alternate)
+            ast.constant = ast.test.constant && ast.consequent.constant && ast.alternate.constant;
+            break;
+        case AST.UnaryExpression:
+            markConstantExpressions(ast.argument)
+            ast.constant = ast.argument.constant;
+            break;
+        case AST.CallExpression:
+            allConstants = Boolean(ast.filter);
+            forEach(ast.arguments, function (arg) {
+                markConstantExpressions(arg);
+                allConstants = allConstants && arg.constant;
+            })
+            ast.constant = allConstants;
+            break;
+    }
+}
+
 export default class ASTCompiler {
     constructor(astBuilder) {
         this.astBuilder = astBuilder;
@@ -59,6 +142,7 @@ export default class ASTCompiler {
     // to:   function(){ return 42; }
     compile(text) {
         var ast = this.astBuilder.ast(text);
+        markConstantExpressions(ast);
         console.log('result of ast:', ast);
 
         this.state = {
@@ -78,17 +162,21 @@ export default class ASTCompiler {
             'ensureSafeFunction',
             'ifDefined',
             'filter',
-            fnString)
+            fnString)(
+                ensureSafeMemberName,
+                ensureSafeObject,
+                ensureSafeFunction,
+                ifDefined,
+                filter
+            )
         // for pretty print resulting fn
         var prettyFn = beautify(fn.toString(), { indent_size: 2, space_in_empty_paren: true });
         console.log(prettyFn);
-        return fn(
-            ensureSafeMemberName,
-            ensureSafeObject,
-            ensureSafeFunction,
-            ifDefined,
-            filter
-        );
+        // isto é esquisito, já que ele mete propriedades na função que depois vai dar para trás
+        fn.literal = isLiteral(ast);
+        fn.constant = ast.constant;
+        return fn;
+
     }
 
     recurse(ast, context, createOnTheFly) {
@@ -315,10 +403,10 @@ export default class ASTCompiler {
     }
 
     filterPrefix() {
-        if (isEmpty(this.state.filters)){
+        if (isEmpty(this.state.filters)) {
             return '';
         } else {
-            var parts = map(this.state.filters, bind(function(varName, filterName){
+            var parts = map(this.state.filters, bind(function (varName, filterName) {
                 return `${varName} = filter(${this.escape(filterName)})`;
             }, this)); // it's binded because otherwise the escape would not be accessible (this inside a function !!)
             return `var ${parts.join(',')};`;

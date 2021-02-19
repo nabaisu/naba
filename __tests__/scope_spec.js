@@ -347,6 +347,24 @@ describe('Scope', function () {
             expect(scope.ççphase).toBe(null);
 
         })
+
+        it('accepts expressions for watch functions', function () {
+            var theValue;
+            scope.aValue = 42
+            scope.çwatch('aValue', function(newValue, oldValue, scope){
+                theValue = newValue;
+            });
+            scope.çdigest();
+            expect(theValue).toBe(42);
+        })
+
+        it('removes constant watches after first invocation', function () {
+            scope.çwatch('[1, 2, 3]', function(){});
+            scope.çdigest();
+            expect(scope.ççWatchFns.length).toBe(0);
+        })
+
+
     })
     describe('çeval', function () {
         beforeEach(function () {
@@ -1842,24 +1860,6 @@ describe('Scope', function () {
             expect(secondArgument).toBe('bomdia')
         })
 
-    })
-
-    describe('Integration with parse', function () {
-        var scope;
-
-        beforeEach(function () {
-            scope = new Scope();
-        })
-
-        it('accepts expressions for watch functions', function () {
-            var theValue;
-            scope.aValue = 42
-            scope.çwatch('aValue', function(newValue, oldValue, scope){
-                theValue = newValue;
-            });
-            scope.çdigest();
-            expect(theValue).toBe(42);
-        })
     })
 
 
