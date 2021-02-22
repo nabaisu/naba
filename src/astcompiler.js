@@ -54,6 +54,21 @@ function isLiteral(ast) {
         )
 }
 
+function assignableAST(ast){
+    if (ast.body.length === 1 && isAssignable(ast.body[0])) {
+        return {
+            type: AST.AssignmentExpression,
+            left: ast.body[0],
+            right: {type: AST.NABValueParameter}
+        }
+    }
+}
+
+function isAssignable(ast){
+    return ast.type === AST.Identifier || ast.type === AST.MemberExpression;
+}
+
+
 function markConstantAndWatchExpressions(ast) {
     var allConstants;
     var argsToWatch;
@@ -142,7 +157,8 @@ function markConstantAndWatchExpressions(ast) {
             ast.toWatch = ast.argument.toWatch;
             break;
         case AST.CallExpression:
-            allConstants = Boolean(ast.filter);
+            var stateless = ast.filter && !filter(ast.callee.name).çstateful;
+            allConstants = stateless ? true : false;
             argsToWatch = [];
             forEach(ast.arguments, function (arg) {
                 markConstantAndWatchExpressions(arg);
@@ -152,7 +168,7 @@ function markConstantAndWatchExpressions(ast) {
                 }
             })
             ast.constant = allConstants;
-            ast.toWatch = ast.filter ? argsToWatch : [ast];
+            ast.toWatch = stateless ? argsToWatch : [ast];
             break;
     }
 }
@@ -170,7 +186,6 @@ function getInputs(ast) {
 export default class ASTCompiler {
     constructor(astBuilder) {
         this.astBuilder = astBuilder;
-
         ASTCompiler.stringEscapeRegex = /[^ a-zA-Z0-9]/g;
         ASTCompiler.scopeId = 's';
         ASTCompiler.localsId = 'l';
@@ -181,11 +196,16 @@ export default class ASTCompiler {
     // to:   function(){ return 42; }
     compile(text) {
         var ast = this.astBuilder.ast(text);
+        var extra = '';
         markConstantAndWatchExpressions(ast);
         console.log('result of ast:', ast);
 
         this.state = {
             fn: {
+                body: [],
+                vars: [],
+            },
+            assign: {
                 body: [],
                 vars: [],
             },
@@ -200,7 +220,22 @@ export default class ASTCompiler {
             this.state.computing = inputKey;
             this.state[inputKey].body.push(`return ${this.recurse(input)};`);
             this.state.inputs.push(inputKey);
-        }, this))
+        }, this));
+        this.stage = 'assign';
+        var assignable = assignableAST(ast);
+        if (assignable) {
+            this.state.computing = 'assign';
+            this.state.assign.body.push(this.recurse(assignable));
+            console.log('this.state.assign.body',this.state.assign.body);
+            extra = `fn.assign = function(${ASTCompiler.scopeId},${ASTCompiler.variablesId},${ASTCompiler.localsId}){${
+                (this.state.assign.vars.length ?
+                    `var ${this.state.assign.vars.join(',')};` 
+                    : '') + 
+                    this.state.assign.body.join('')
+            }};`;
+            console.log('extra (assign):\n', beautify(extra.toString(), { indent_size: 2, space_in_empty_paren: true }));
+        }
+
         this.stage = 'main';
         this.state.computing = 'fn';
         this.recurse(ast);
@@ -210,7 +245,7 @@ export default class ASTCompiler {
                 `var ${this.state.fn.vars.join(',')};` :
                 '') 
                 + this.state.fn.body.join('')}
-            };${this.watchFns()} return fn;`;
+            };${this.watchFns() + extra} return fn;`;
         var fn = new Function(
             'ensureSafeMemberName',
             'ensureSafeObject',
@@ -312,8 +347,8 @@ export default class ASTCompiler {
                 } else {
                     ensureSafeMemberName(ast.property.name);
                     if (createOnTheFly) {
-                        this.if_(this.not(this.nonComputedMember(left, right)),
-                            this.assign(this.nonComputedMember(left, right), '{}'));
+                        this.if_(this.not(this.nonComputedMember(left, ast.property.name)),
+                            this.assign(this.nonComputedMember(left, ast.property.name), '{}'));
                     }
                     this.if_(left,
                         this.assign(intoId,
@@ -386,6 +421,8 @@ export default class ASTCompiler {
                 this.if_(this.not(testId),
                     this.assign(intoId, this.recurse(ast.alternate)));
                 return intoId
+            case AST.NABValueParameter:
+                    return ASTCompiler.variablesId;
             default:
                 throw 'error when choosing the type on the ast compiler';
         }
@@ -407,7 +444,7 @@ export default class ASTCompiler {
     }
 
     nonComputedMember(left, right) {
-        return `(${left}).${right}`;
+        return `(${left}).${right}`; //? 
     }
 
     computedMember(left, right) {

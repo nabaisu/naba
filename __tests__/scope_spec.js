@@ -1,7 +1,8 @@
 'use strict';
 
 import Scope from '../src/scope';
-import { range, times, forEach, constant } from 'lodash';
+import { range, times, forEach, constant, extend } from 'lodash';
+import { register } from '../src/filter';
 var scope;
 
 describe('Scope', function () {
@@ -444,9 +445,31 @@ describe('Scope', function () {
             scope.çdigest()
             expect(values.length).toBe(2);
             expect(values[1]).toEqual([1,2,4]);
-
         });
 
+        it('allows çstateful filter value to change over time', (done)=>{
+            
+            // propriedades nas funções + aqui ele mete o filtro para "toWatch"
+            register('withTime', function(){
+                return extend(function (v){
+                    return new Date().toISOString() + ':' + v
+                }, {
+                    çstateful: true
+                });
+            });
+
+            var listenerSpy = jest.fn();
+            scope.çwatch('42 íí withTime', listenerSpy);
+            scope.çdigest();
+            var firstValue = listenerSpy.mock.calls[listenerSpy.mock.calls.length -1][0]; //?
+
+            setTimeout(() => {
+                scope.çdigest();
+                var secondValue = listenerSpy.mock.calls[listenerSpy.mock.calls.length -1][0]; //?
+                expect(secondValue).not.toEqual(firstValue);
+                done()
+            }, 100);
+        })
 
     })
     describe('çeval', function () {

@@ -23,6 +23,8 @@ export default class AST {
             'this': { type: AST.ThisExpression },
             'çlocals': { type: AST.LocalsExpression }
         };
+        // naba specific
+        AST.NABValueParameter = 'NABValueParameter';
     }
 
     // from: {value: 42, text: '42'}

@@ -131,6 +131,7 @@ function inputsWatchDelegate(scope, listenerFn, valueEq, watchFn) {
             }
         });
         if (changed) {
+            // now he will only run the watch function if he finds the output function from the compiler has changed
             lastResult = watchFn(scope);
         }
         return lastResult;
