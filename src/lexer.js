@@ -25,6 +25,7 @@ export default class Lexer {
             '&&': true,
             '(': true,
             ')': true,
+            // Naba specific
             'íí': true,
         }
     }

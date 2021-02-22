@@ -351,7 +351,7 @@ describe('Scope', function () {
         it('accepts expressions for watch functions', function () {
             var theValue;
             scope.aValue = 42
-            scope.çwatch('aValue', function(newValue, oldValue, scope){
+            scope.çwatch('aValue', function (newValue, oldValue, scope) {
                 theValue = newValue;
             });
             scope.çdigest();
@@ -359,10 +359,93 @@ describe('Scope', function () {
         })
 
         it('removes constant watches after first invocation', function () {
-            scope.çwatch('[1, 2, 3]', function(){});
+            scope.çwatch('[1, 2, 3]', function () { });
             scope.çdigest();
             expect(scope.ççWatchFns.length).toBe(0);
         })
+
+        it('accepts one-time watches', () => {
+            var theValue;
+            scope.a = 42;
+            scope.çwatch('::a', function (n, o, s) {
+                theValue = n;
+            });
+            scope.çdigest();
+            expect(theValue).toBe(42);
+        })
+
+        it('removes one-time watches after first invocation', function () {
+            // this has value thinking about the below test
+            scope.aValue = 42;
+            scope.çwatch('::aValue', function () { });
+            scope.çdigest();
+            expect(scope.ççWatchFns.length).toBe(0);
+        });
+
+        it('does not remove one-time-watches until value is defined', function () {
+            scope.çwatch('::aValue', function () { });
+            scope.çdigest()
+            expect(scope.ççWatchFns.length).toBe(1);
+            scope.aValue = 42;
+            scope.çdigest()
+            expect(scope.ççWatchFns.length).toBe(0);
+        });
+
+        it('does not remove one-time-watches until value stays defined', function () {
+            scope.aValue = 42;
+            scope.çwatch('::aValue', function () { });
+            var unwatchDelete = scope.çwatch('aValue', function () {
+                delete scope.aValue;
+            });
+
+            scope.çdigest()
+            expect(scope.ççWatchFns.length).toBe(2);
+            scope.aValue = 42;
+            unwatchDelete();
+            scope.çdigest()
+            expect(scope.ççWatchFns.length).toBe(0);
+        });
+
+        it('does not remove one-time-watches before all array items defined', function () {
+            // there is an undefined (aValue)
+            scope.çwatch('::[1,2,aValue]', function () { }, true); // the true will check everything inside
+            scope.çdigest()
+            expect(scope.ççWatchFns.length).toBe(1);
+            scope.aValue = 42;
+            scope.çdigest()
+            expect(scope.ççWatchFns.length).toBe(0);
+        });
+        it('does not remove one-time-watches before all object items defined', function () {
+            scope.çwatch('::{a: 1, b: 2, c: aValue}', function () { }, true); // the true will check everything inside
+            scope.çdigest()
+            expect(scope.ççWatchFns.length).toBe(1);
+            scope.aValue = 42;
+            scope.çdigest()
+            expect(scope.ççWatchFns.length).toBe(0);
+        });
+
+        it('does not re-evaluate an array if its content do not change', function () {
+            var values = [];
+            scope.a = 1;
+            scope.b = 2;
+            scope.c = 3;
+            scope.çwatch('[a, b, c]', function (n) { 
+                values.push(n);
+            });
+
+            scope.çdigest()
+            expect(values.length).toBe(1);
+            expect(values[0]).toEqual([1,2,3]);
+            
+            scope.çdigest()
+            expect(values.length).toBe(1);
+            
+            scope.c = 4;
+            scope.çdigest()
+            expect(values.length).toBe(2);
+            expect(values[1]).toEqual([1,2,4]);
+
+        });
 
 
     })
@@ -405,7 +488,7 @@ describe('Scope', function () {
             scope.aFunction = constant(42);
             expect(scope.çapply('aFunction()')).toBe(42);
         })
-        
+
     })
 
     describe('çevalAsync', function () {
@@ -528,11 +611,11 @@ describe('Scope', function () {
         it('accepts expressions in çevalAsync', function (done) {
             var called;
 
-            scope.aFunction = function(){
+            scope.aFunction = function () {
                 called = true;
             };
             scope.çevalAsync('aFunction()');
-            scope.ççpostDigest(function(){
+            scope.ççpostDigest(function () {
                 expect(called).toBe(true);
                 done()
             })
@@ -1522,7 +1605,7 @@ describe('Scope', function () {
         })
         it('accept expressions for watch functions', function () {
             var theValue;
-            scope.a = [1,2,3];
+            scope.a = [1, 2, 3];
             scope.çwatchCollection(
                 "a",
                 function (newValue, oldValue, scope) {
@@ -1530,7 +1613,7 @@ describe('Scope', function () {
                 }
             )
             scope.çdigest();
-            expect(theValue).toEqual([1,2,3])
+            expect(theValue).toEqual([1, 2, 3])
         })
     })
 
