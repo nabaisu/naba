@@ -45,6 +45,28 @@ describe('setupModuleLoader', () => {
             var myModule = window.naba.module('myModule', ['otherModule']);
             expect(myModule.requires).toEqual(['otherModule']);
         })
+        it('allows getting a module', () => {
+            var myModule = window.naba.module('myModule', []);
+            var gotModule = window.naba.module('myModule');
+            expect(gotModule).toBeDefined();
+            expect(myModule).toBe(gotModule);
+        })
+        it('throws when trying to get a non-existant module', () => {
+            expect(
+                function () {
+                    window.naba.module('ola');
+                }
+            ).toThrow();
+        })
+        it('does not allow a module to be called hasOwnProperty', () => {
+            expect(
+                function () {
+                    window.naba.module('hasOwnProperty', []
+                    )
+                }
+            ).toThrow();
+        })
+
     })
 
 })
