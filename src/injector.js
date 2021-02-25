@@ -25,15 +25,17 @@ function createInjector(modulesToLoad) {
         }
     })
 
-    function invoke(fn) {
+    function invoke(fn, self, locals) {
         var args = map(fn.çinject, function (token) {
             if (isString(token)) {
-                return cache[token];
+                return (locals && locals.hasOwnProperty(token)) ?
+                    locals[token] :
+                    cache[token];
             } else {
                 throw `Incorrect injection token! Expected a string, got: ${token}`
             }
         });
-        return fn.apply(null, args);
+        return fn.apply(self, args);
     }
 
     return {

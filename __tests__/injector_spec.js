@@ -8,17 +8,17 @@ describe('Injector', () => {
         setupModuleLoader(window);
     })
     it('can be created', () => {
-        var injector = createInjector([])        
+        var injector = createInjector([])
         expect(injector).toBeDefined();
     })
 
     it('has a constant that has been registered to a module', () => {
         var module = window[APP_NAME][MODULES_NAME]('something', [])
-        module.constant('aConstant', 42); 
+        module.constant('aConstant', 42);
         var injector = createInjector(['something'])
         expect(injector.has('aConstant')).toBe(true);
     })
-    
+
     it('has a constant that has been registered to a module', () => {
         window[APP_NAME][MODULES_NAME]('something', [])
         var injector = createInjector(['something'])
@@ -27,13 +27,13 @@ describe('Injector', () => {
     it('should not be able to register a property called hasOwnProperty', () => {
         var module = window[APP_NAME][MODULES_NAME]('something', [])
         module.constant('hasOwnProperty', 42)
-        expect(function(){
+        expect(function () {
             createInjector(['something']);
         }).toThrow();
     })
     it('can return a registered constant', () => {
         var module = window[APP_NAME][MODULES_NAME]('something', [])
-        module.constant('aConstant', 42); 
+        module.constant('aConstant', 42);
         var injector = createInjector(['something'])
         expect(injector.get('aConstant')).toBe(42);
     })
@@ -74,7 +74,7 @@ describe('Injector', () => {
     it('loads each module only once', () => {
         window[APP_NAME][MODULES_NAME]('a', ['b'])
         window[APP_NAME][MODULES_NAME]('b', ['a'])
-        createInjector(['a']); 
+        createInjector(['a']);
         // interessante não ter o expect quando há stack overflow
     })
 
@@ -85,9 +85,9 @@ describe('Injector', () => {
         var injector = createInjector(['a']);
 
         var fn = function (one, two) {
-         return one + two   
+            return one + two
         };
-        
+
         fn.çinject = ['aConstant', 'bConstant'];
 
         expect(injector.invoke(fn)).toBe(42);
@@ -99,9 +99,9 @@ describe('Injector', () => {
         var injector = createInjector(['a']);
 
         var fn = function (one, two) {
-         return one + two   
+            return one + two
         };
-        
+
         fn.çinject = ['aConstant', 2];
 
         expect(
@@ -111,7 +111,39 @@ describe('Injector', () => {
         ).toThrow();
     })
 
-    
+    it('invokes a function with the given this context', () => {
+        var module = window[APP_NAME][MODULES_NAME]('a', [])
+        module.constant('aConstant', 40);
+        var injector = createInjector(['a']);
+
+        var thisToUse = { two: 2 }
+        var fn = function (one) {
+            return this.two + one;
+        };
+
+        fn.çinject = ['aConstant'];
+        expect(injector.invoke(fn, thisToUse)).toBe(42);
+    })
+
+    it('overrides dependencies with locals when invoking', () => {
+        var module = window[APP_NAME][MODULES_NAME]('a', [])
+        module.constant('aConstant', 40);
+        module.constant('two', 40);
+        var injector = createInjector(['a']);
+
+        var overrideObj = {
+            two: 2
+        }
+        var fn = function (one, two) {
+            return one + two;
+        };
+
+        fn.çinject = ['aConstant', 'two'];
+        expect(injector.invoke(fn, null, overrideObj)).toBe(42);
+    })
+
+
+
 
 
 })
