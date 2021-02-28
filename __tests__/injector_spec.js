@@ -304,6 +304,59 @@ describe('Injector', () => {
         })
 
 
+        describe('Providers', () => {
+            it('allows registering a provider and uses its çget', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('a', {
+                    çget: function () {
+                        return 42;
+                    }
+                });
+                var injector = createInjector(['myModule']);
+
+                expect(injector.has('a')).toBe(true);
+                expect(injector.get('a')).toBe(42);
+            })
+
+            it('injects the çget method of a provider', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.constant('a', 39)
+                module.provider('b', {
+                    çget: function (a) {
+                        return a + 3;
+                    }
+                });
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get('b')).toBe(42);
+            })
+
+            it('injects the çget of a provider lazily', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('b', {
+                    çget: function (a) {
+                        return a + 3;
+                    }
+                });
+
+                module.provider('a', { çget: constant(39) });
+
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get('b')).toBe(42);
+            })
+
+            it('instantiates a dependency only once', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('b', { çget: function () { return {}; } });
+
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get('b')).toBe(injector.get('b'));
+            })
+
+
+        })
 
 
 

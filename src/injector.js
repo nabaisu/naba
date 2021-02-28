@@ -7,14 +7,20 @@ function createInjector(modulesToLoad, strictMode) {
     var STRIP_COMMENTS = /(\/\/.*$)|(\/\*.*?\*\/)/mg;
 
     var cache = {};
+    var providerCache = {};
+    var instanceCache = {};
     var loadedModules = {};
     var strictDI = (strictMode === true)
 
     var çprovide = {
         constant: function (key, value) {
             if (key === 'hasOwnProperty') throw 'The constant hasOwnProperty is not allowed to register'
-            cache[key] = value;
+            instanceCache[key] = value;
+        },
+        provider: function (key, provider) {
+            providerCache[key + 'Provider'] =  provider;
         }
+
     };
     forEach(modulesToLoad, function loadModules(moduleName) {
         if (!loadedModules.hasOwnProperty(moduleName)) {
@@ -35,7 +41,7 @@ function createInjector(modulesToLoad, strictMode) {
             if (isString(token)) {
                 return (locals && locals.hasOwnProperty(token)) ?
                     locals[token] :
-                    cache[token];
+                    getService(token);
             } else {
                 throw `Incorrect injection token! Expected a string, got: ${token}`
             }
@@ -69,16 +75,24 @@ function createInjector(modulesToLoad, strictMode) {
         var instance = Object.create(unwrappedType.prototype);
         invoke(Type, instance, locals);
         return instance;
-        
+    }
+
+    function getService(name) { // this will only run the invoke function when the value is requested
+        if (instanceCache.hasOwnProperty(name)) {
+            return instanceCache[name];
+        } else if (providerCache.hasOwnProperty(name + 'Provider')) {
+            var provider = providerCache[name + 'Provider'];
+            var instance = instanceCache[name] = invoke(provider.çget) // interessante, já que isto agora está a ser guardado na outra cache também
+            return instance;
+        }
     }
 
     return {
-        has(key) {
-            return cache.hasOwnProperty(key);
+        has(key) { // this will not run the invoke
+            return instanceCache.hasOwnProperty(key) ||
+                providerCache.hasOwnProperty(key + 'Provider');
         },
-        get(value) {
-            return cache[value];
-        },
+        get: getService, // this will run the invoke if there is a provider
         invoke: invoke,
         annotate: annotate,
         instantiate: instantiate
