@@ -5,8 +5,9 @@ function createInjector(modulesToLoad, strictMode) {
     var FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
     var FN_ARG = /^\s*(_?)(\S+?)\1\s*$/;
     var STRIP_COMMENTS = /(\/\/.*$)|(\/\*.*?\*\/)/mg;
+    var INSTANTIATING = {};
+    var path = []; // isto é esperto para xuxu porque nos dá para ver qual é a dependencia que está em loop
 
-    var cache = {};
     var providerCache = {};
     var instanceCache = {};
     var loadedModules = {};
@@ -18,7 +19,7 @@ function createInjector(modulesToLoad, strictMode) {
             instanceCache[key] = value;
         },
         provider: function (key, provider) {
-            providerCache[key + 'Provider'] =  provider;
+            providerCache[key + 'Provider'] = provider;
         }
 
     };
@@ -63,9 +64,9 @@ function createInjector(modulesToLoad, strictMode) {
         } else {
             if (strictDI) throw 'fn is not using explicit annotation and cannot be invoked in strict mode'
             var source = fn.toString().replace(STRIP_COMMENTS, '');
-            var argDeclaration = source.match(FN_ARGS); //?
+            var argDeclaration = source.match(FN_ARGS);
             return map(argDeclaration[1].split(','), arg => {
-                return arg.match(FN_ARG)[2]; //?
+                return arg.match(FN_ARG)[2];
             })
         }
     }
@@ -79,10 +80,23 @@ function createInjector(modulesToLoad, strictMode) {
 
     function getService(name) { // this will only run the invoke function when the value is requested
         if (instanceCache.hasOwnProperty(name)) {
+            if (instanceCache[name] === INSTANTIATING) { // isto significa que o instantiating vai ter o mesmo pointer.
+                throw new Error(`Circular dependency found: ${name} <- ${path.join(' <- ')}`);
+            }
             return instanceCache[name];
         } else if (providerCache.hasOwnProperty(name + 'Provider')) {
-            var provider = providerCache[name + 'Provider'];
-            var instance = instanceCache[name] = invoke(provider.çget) // interessante, já que isto agora está a ser guardado na outra cache também
+            path.unshift(name);
+            instanceCache[name] = INSTANTIATING;
+            try {
+                var provider = providerCache[name + 'Provider'];
+                var instance;
+                instance = instanceCache[name] = invoke(provider.çget) // interessante, já que isto agora está a ser guardado na outra cache também
+            } finally {
+                path.shift();
+                if (instanceCache[name] === INSTANTIATING) {
+                    delete instanceCache[name];
+                }
+            }
             return instance;
         }
     }
