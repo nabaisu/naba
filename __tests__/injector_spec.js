@@ -370,7 +370,7 @@ describe('Injector', () => {
 
             it('cleans up the circular marker when instantiating fails', () => {
                 var module = window[APP_NAME][MODULES_NAME]('myModule', [])
-                module.provider('a', { çget: function () { throw 'Failing Instantiating!'} });
+                module.provider('a', { çget: function () { throw 'Failing Instantiating!' } });
 
                 var injector = createInjector(['myModule']);
 
@@ -382,7 +382,28 @@ describe('Injector', () => {
                 }).toThrow('Failing Instantiating!');
             })
 
+            it('instantiates a provider if given as a constructor function', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('a', function AProvider() {
+                    this.çget = function () { return 42; }
+                });
 
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get('a')).toBe(42);
+            })
+
+            it('injects the given provider constructor function', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.constant('b', 2);
+                module.provider('a', function AProvider(b) {
+                    this.çget = function () { return b + 40; }
+                });
+
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get('a')).toBe(42);
+            })
 
 
         })
