@@ -278,7 +278,7 @@ describe('Injector', () => {
             function BaseType() { }
             BaseType.prototype.getValue = constant(42);
 
-            function Type(v) { this.v = this.getValue(); }
+            function Type() { this.v = this.getValue(); }
             Type.prototype = BaseType.prototype;
 
             window[APP_NAME][MODULES_NAME]('myModule', [])
@@ -405,11 +405,99 @@ describe('Injector', () => {
                 expect(injector.get('a')).toBe(42);
             })
 
+            it('injects other provider with to a provider constructor function', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('a', function AProvider() {
+                    var value = 1;
+                    this.setValue = function (v) { value = v; };
+                    this.çget = function () { return value; }
+                });
+                module.provider('b', function BProvider(aProvider) {
+                    aProvider.setValue(2);
+                    this.çget = function () { }
+                });
 
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get('a')).toBe(2);
+            })
+
+            it('does not inject an instance to a provider constructor function', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('a', function AProvider() {
+                    this.çget = function () { return 1; }
+                });
+                module.provider('b', function BProvider(a) {
+                    this.çget = function () { return a }
+                });
+
+                expect(function () {
+                    createInjector(['myModule'])
+                }).toThrow()
+            })
+
+            it('does not inject providers to a çget method', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('a', function AProvider() {
+                    this.çget = function () { return 1; }
+                });
+                module.provider('b', function BProvider(aProvider) {
+                    this.çget = function (aProvider) { return aProvider.çget() }
+                });
+
+                var injector = createInjector(['myModule']);
+
+                expect(function () {
+                    injector.get('b');
+                }).toThrow()
+            })
+
+            it('does not inject a provider to invoke', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('a', function AProvider() {
+                    this.çget = function () { return 1; }
+                });
+
+                var injector = createInjector(['myModule']);
+
+                expect(function () {
+                    injector.invoke(function (aProvider) { });
+                }).toThrow()
+            })
+
+            it('does not give access to providers through get', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('a', function AProvider() {
+                    this.çget = function () { return 1; }
+                });
+
+                var injector = createInjector(['myModule']);
+
+                expect(function () {
+                    injector.get('aProvider');
+                }).toThrow()
+            })
+
+            it('registers constants first to make them available to providers', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                module.provider('a', function AProvider(c) {
+                    this.çget = function () { return c; }
+                });
+                module.constant('c', 42);
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get('a')).toBe(42);
         })
 
 
 
+
+
+
     })
+
+
+
+})
 
 })
