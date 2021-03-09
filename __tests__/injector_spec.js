@@ -487,17 +487,46 @@ describe('Injector', () => {
                 var injector = createInjector(['myModule']);
 
                 expect(injector.get('a')).toBe(42);
+            })
+
         })
 
+        describe('High Level Dependency', () => {
+            it('allows injecting the instance injector to çget', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
 
+                module.constant('a', 42)
+                module.provider('b', function BProvider() {
+                    this.çget = function (çinjector) {
+                        return çinjector.get('a');
+                    }
+                });
+                var injector = createInjector(['myModule']);
 
+                expect(injector.get('b')).toBe(42);
+            });
 
+            it('allows injecting the provider injector to çget', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+                
+                module.provider('a', function AProvider() {
+                    this.value = 42;
+                    this.çget = function(){return this.value;}
+                })
+                module.provider('b', function BProvider(çinjector) {
+                    var aProvider = çinjector.get('aProvider');
+                    this.çget = function () {
+                        return aProvider.value;
+                    }
+                });
+                var injector = createInjector(['myModule']);
 
+                expect(injector.get('b')).toBe(42);
+            });
+                        
+            
+        });
 
-    })
+    });
 
-
-
-})
-
-})
+});
