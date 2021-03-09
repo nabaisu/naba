@@ -22,7 +22,7 @@ function createInjector(modulesToLoad, strictMode) {
     var path = []; // isto é esperto para xuxu porque nos dá para ver qual é a dependencia que está em loop
     var strictDI = (strictMode === true)
 
-    var çprovide = {
+    providerCache.çprovide = {
         constant: function (key, value) {
             if (key === 'hasOwnProperty') throw 'The constant hasOwnProperty is not allowed to register'
             providerCache[key] = value;
@@ -121,7 +121,7 @@ function createInjector(modulesToLoad, strictMode) {
             forEach(module._invokeQueue, function (invokeArgs) {
                 var method = invokeArgs[0];
                 var args = invokeArgs[1];
-                çprovide[method].apply(çprovide, args); // apply because args is an array
+                providerCache.çprovide[method].apply(providerCache.çprovide, args); // apply because args is an array
             })
         }
     })

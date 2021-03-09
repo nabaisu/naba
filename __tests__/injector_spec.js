@@ -508,13 +508,13 @@ describe('Injector', () => {
 
             it('allows injecting the provider injector to çget', () => {
                 var module = window[APP_NAME][MODULES_NAME]('myModule', [])
-                
+
                 module.provider('a', function AProvider() {
                     this.value = 42;
-                    this.çget = function(){return this.value;}
+                    this.çget = function () { return this.value; }
                 })
                 module.provider('b', function BProvider(çinjector) {
-                    var aProvider = çinjector.get('aProvider');
+                    var aProvider = çinjector.get('aProvider'); // because the provider is the "a", plus the word "Provider"
                     this.çget = function () {
                         return aProvider.value;
                     }
@@ -523,10 +523,36 @@ describe('Injector', () => {
 
                 expect(injector.get('b')).toBe(42);
             });
-                        
-            
+
+            it('allows injecting the çprovide service to providers', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+
+                module.provider('a', function AProvider(çprovide) {
+                    çprovide.constant('b', 40)
+                    this.çget = function (b) { return 2 + b; }
+                })
+
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get('a')).toBe(42);
+            });
+
+            it('does not allows injecting the çprovide service to çget', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+
+                module.provider('a', function AProvider() {
+                    this.çget = function (çprovide) { }
+                })
+
+                var injector = createInjector(['myModule']);
+
+                expect(function () {
+                    injector.get('a')
+                }).toThrow();
+
+            });
+
         });
 
     });
-
 });
