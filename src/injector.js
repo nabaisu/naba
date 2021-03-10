@@ -33,8 +33,7 @@ function createInjector(modulesToLoad, strictMode) {
                 provider = providerInjector.instantiate(provider);
             }
             providerCache[key + 'Provider'] = provider;
-        }
-
+        },
     };
 
     function annotate(fn) { // this will return the dependencies found in a given function or array
@@ -112,17 +111,23 @@ function createInjector(modulesToLoad, strictMode) {
     
     }
 
+    function runInvokeQueue(queue) {
+     forEach(queue, function(invokeArgs){
+         var service = providerInjector.get(invokeArgs[0]);
+         var method = invokeArgs[1];
+         var args = invokeArgs[2];
+         service[method].apply(service, args);
+     })   
+    }
+
     forEach(modulesToLoad, function loadModules(moduleName) { // this will load the modules
         if (!loadedModules.hasOwnProperty(moduleName)) {
             loadedModules[moduleName] = true;
             var module = window[APP_NAME][MODULES_NAME](moduleName)
             // here should go the requires
             forEach(module.requires, loadModules); // inteligente para xuxu!!! chama a função acima e assim, fica recursivo
-            forEach(module._invokeQueue, function (invokeArgs) {
-                var method = invokeArgs[0];
-                var args = invokeArgs[1];
-                providerCache.çprovide[method].apply(providerCache.çprovide, args); // apply because args is an array
-            })
+            runInvokeQueue(module._invokeQueue);
+            runInvokeQueue(module._configBlocks);
         }
     })
 
