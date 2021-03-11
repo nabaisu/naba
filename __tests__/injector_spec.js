@@ -593,13 +593,42 @@ describe('Injector', () => {
             });
 
             it('runs a config block added during module registration', () => {
-                var module = window[APP_NAME][MODULES_NAME]('myModule', [], function(çprovide){
+                window[APP_NAME][MODULES_NAME]('myModule', [], function(çprovide){
                     çprovide.constant('a', 42);
                 })
 
                 var injector = createInjector(['myModule']);
 
                 expect(injector.get('a')).toBe(42);
+
+            });
+
+            it('runs run blocks when the injector is created', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+
+                var hasRun = false;
+                module.run(function() {
+                    hasRun = true;                   
+                })
+
+                createInjector(['myModule']);
+
+                expect(hasRun).toBe(true);
+
+            });
+
+            it('injects run blocks with the instance injector', () => {
+                var module = window[APP_NAME][MODULES_NAME]('myModule', [])
+
+                module.provider('a', {çget: constant(42)})
+                var gotA;
+                module.run(function (a) {
+                    gotA = a;
+                })
+
+                createInjector(['myModule']);
+
+                expect(gotA).toBe(42);
 
             });
 

@@ -27,8 +27,13 @@ function setupModuleLoader(window) {
             constant: invokeLater('çprovide','constant', 'unshift'),
             provider: invokeLater('çprovide','provider'),
             config: invokeLater('çinjector','invoke', 'push', configBlocks),
+            run: function(fn){
+                moduleInstance._runBlocks.push(fn);
+                return moduleInstance;
+            },
             _invokeQueue: invokeQueue,
-            _configBlocks: configBlocks
+            _configBlocks: configBlocks,
+            _runBlocks: [],
         };
 
         if (configFn) {
