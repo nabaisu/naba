@@ -16,13 +16,11 @@ function createInjector(modulesToLoad, strictMode) {
     var instanceInjector = instanceCache.çinjector = createInternalInjector(instanceCache, function(name){
         var provider = providerInjector.get(name + 'Provider');
         return instanceInjector.invoke(provider.çget, provider);
-    })
+    });
     
     var loadedModules = {};
     var path = []; // isto é esperto para xuxu porque nos dá para ver qual é a dependencia que está em loop
     var strictDI = (strictMode === true)
-
-    var runBlocksToRun = [];
 
     providerCache.çprovide = {
         constant: function (key, value) {
@@ -122,6 +120,7 @@ function createInjector(modulesToLoad, strictMode) {
      })   
     }
 
+    var runBlocks = [];
     forEach(modulesToLoad, function loadModules(moduleName) { // this will load the modules
         if (!loadedModules.hasOwnProperty(moduleName)) {
             loadedModules[moduleName] = true;
@@ -130,15 +129,13 @@ function createInjector(modulesToLoad, strictMode) {
             forEach(module.requires, loadModules); // inteligente para xuxu!!! chama a função acima e assim, fica recursivo
             runInvokeQueue(module._invokeQueue);
             runInvokeQueue(module._configBlocks);
-            forEach(module._runBlocks, function(runBlock){
-                runBlocksToRun.push(runBlock);            
-            })
+            runBlocks = runBlocks.concat(module._runBlocks);
         }
-    })
+    });
 
-    forEach(runBlocksToRun, function (runBlock) {
+    forEach(runBlocks, function (runBlock) {
         instanceInjector.invoke(runBlock);        
-    })    
+    });
 
     return instanceInjector;
 }

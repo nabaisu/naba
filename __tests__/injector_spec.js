@@ -549,7 +549,6 @@ describe('Injector', () => {
                 expect(function () {
                     injector.get('a')
                 }).toThrow();
-
             });
 
             it('runs config blocks when the injector is created', () => {
@@ -563,7 +562,6 @@ describe('Injector', () => {
                 var injector = createInjector(['myModule']);
 
                 expect(hasRun).toBe(true);
-
             });
 
             it('injects config blocks with provider injector', () => {
@@ -576,7 +574,6 @@ describe('Injector', () => {
                 var injector = createInjector(['myModule']);
 
                 expect(injector.get('a')).toBe(42);
-
             });
             it('allows registering config blocks before providers', () => {
                 var module = window[APP_NAME][MODULES_NAME]('myModule', [])
@@ -589,7 +586,6 @@ describe('Injector', () => {
                 var injector = createInjector(['myModule']);
 
                 expect(injector.get('b')).toBe(42);
-
             });
 
             it('runs a config block added during module registration', () => {
@@ -600,7 +596,6 @@ describe('Injector', () => {
                 var injector = createInjector(['myModule']);
 
                 expect(injector.get('a')).toBe(42);
-
             });
 
             it('runs run blocks when the injector is created', () => {
@@ -614,7 +609,6 @@ describe('Injector', () => {
                 createInjector(['myModule']);
 
                 expect(hasRun).toBe(true);
-
             });
 
             it('injects run blocks with the instance injector', () => {
@@ -629,7 +623,23 @@ describe('Injector', () => {
                 createInjector(['myModule']);
 
                 expect(gotA).toBe(42);
+            });
 
+            it('configures all modules before running any run blocks', () => {
+                var module1 = window[APP_NAME][MODULES_NAME]('myModule', [])
+                
+                module1.provider('a', {çget: constant(4)})
+                var result;
+                module1.run(function (a, b) {
+                    result = a + b;
+                })
+
+                var module2 = window[APP_NAME][MODULES_NAME]('myOtherModule', [])
+                module2.provider('b', {çget: constant(38)})
+                
+                createInjector(['myModule', 'myOtherModule']);
+
+                expect(result).toBe(42);
             });
 
 
