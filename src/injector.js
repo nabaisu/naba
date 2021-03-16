@@ -1,4 +1,4 @@
-import { create, forEach, isArray, isFunction, isString, last, map } from "lodash";
+import { compact, create, forEach, isArray, isFunction, isString, last, map } from "lodash";
 import { APP_NAME, MODULES_NAME } from "./appdefaults";
 
 function createInjector(modulesToLoad, strictMode) {
@@ -6,18 +6,18 @@ function createInjector(modulesToLoad, strictMode) {
     var FN_ARG = /^\s*(_?)(\S+?)\1\s*$/;
     var STRIP_COMMENTS = /(\/\/.*$)|(\/\*.*?\*\/)/mg;
     var INSTANTIATING = {};
-    
+
     var providerCache = {};
     var providerInjector = providerCache.çinjector = createInternalInjector(providerCache, function () {
-        throw `Unkown Provider: ${path.join(' <- ')}` 
+        throw `Unkown Provider: ${path.join(' <- ')}`
     });
-    
+
     var instanceCache = {};
-    var instanceInjector = instanceCache.çinjector = createInternalInjector(instanceCache, function(name){
+    var instanceInjector = instanceCache.çinjector = createInternalInjector(instanceCache, function (name) {
         var provider = providerInjector.get(name + 'Provider');
         return instanceInjector.invoke(provider.çget, provider);
     });
-    
+
     var loadedModules = {};
     var path = []; // isto é esperto para xuxu porque nos dá para ver qual é a dependencia que está em loop
     var strictDI = (strictMode === true)
@@ -84,7 +84,7 @@ function createInjector(modulesToLoad, strictMode) {
                     throw `Incorrect injection token! Expected a string, got: ${token}`
                 }
             });
-    
+
             if (isArray(fn)) {
                 fn = last(fn);
             }
@@ -108,33 +108,37 @@ function createInjector(modulesToLoad, strictMode) {
             annotate: annotate,
             instantiate: instantiate
         }
-    
+
     }
 
     function runInvokeQueue(queue) {
-     forEach(queue, function(invokeArgs){
-         var service = providerInjector.get(invokeArgs[0]);
-         var method = invokeArgs[1];
-         var args = invokeArgs[2];
-         service[method].apply(service, args);
-     })   
+        forEach(queue, function (invokeArgs) {
+            var service = providerInjector.get(invokeArgs[0]);
+            var method = invokeArgs[1];
+            var args = invokeArgs[2];
+            service[method].apply(service, args);
+        })
     }
 
     var runBlocks = [];
-    forEach(modulesToLoad, function loadModules(moduleName) { // this will load the modules
-        if (!loadedModules.hasOwnProperty(moduleName)) {
-            loadedModules[moduleName] = true;
-            var module = window[APP_NAME][MODULES_NAME](moduleName)
-            // here should go the requires
-            forEach(module.requires, loadModules); // inteligente para xuxu!!! chama a função acima e assim, fica recursivo
-            runInvokeQueue(module._invokeQueue);
-            runInvokeQueue(module._configBlocks);
-            runBlocks = runBlocks.concat(module._runBlocks);
+    forEach(modulesToLoad, function loadModules(module) { // this will load the modules
+        if (isString(module)) {
+            if (!loadedModules.hasOwnProperty(module)) {
+                loadedModules[module] = true;
+                var module = window[APP_NAME][MODULES_NAME](module)
+                // here should go the requires
+                forEach(module.requires, loadModules); // inteligente para xuxu!!! chama a função acima e assim, fica recursivo
+                runInvokeQueue(module._invokeQueue);
+                runInvokeQueue(module._configBlocks);
+                runBlocks = runBlocks.concat(module._runBlocks);
+            }
+        } else if (isFunction(module) || isArray(module)) { // this is because the way invoke was built, to expect either a function or an array
+            runBlocks.push(providerInjector.invoke(module)); 
         }
     });
 
-    forEach(runBlocks, function (runBlock) {
-        instanceInjector.invoke(runBlock);        
+    forEach(compact(runBlocks), function (runBlock) {
+        instanceInjector.invoke(runBlock);
     });
 
     return instanceInjector;

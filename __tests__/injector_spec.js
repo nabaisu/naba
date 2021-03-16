@@ -589,7 +589,7 @@ describe('Injector', () => {
             });
 
             it('runs a config block added during module registration', () => {
-                window[APP_NAME][MODULES_NAME]('myModule', [], function(çprovide){
+                window[APP_NAME][MODULES_NAME]('myModule', [], function (çprovide) {
                     çprovide.constant('a', 42);
                 })
 
@@ -602,8 +602,8 @@ describe('Injector', () => {
                 var module = window[APP_NAME][MODULES_NAME]('myModule', [])
 
                 var hasRun = false;
-                module.run(function() {
-                    hasRun = true;                   
+                module.run(function () {
+                    hasRun = true;
                 })
 
                 createInjector(['myModule']);
@@ -614,7 +614,7 @@ describe('Injector', () => {
             it('injects run blocks with the instance injector', () => {
                 var module = window[APP_NAME][MODULES_NAME]('myModule', [])
 
-                module.provider('a', {çget: constant(42)})
+                module.provider('a', { çget: constant(42) })
                 var gotA;
                 module.run(function (a) {
                     gotA = a;
@@ -627,20 +627,75 @@ describe('Injector', () => {
 
             it('configures all modules before running any run blocks', () => {
                 var module1 = window[APP_NAME][MODULES_NAME]('myModule', [])
-                
-                module1.provider('a', {çget: constant(4)})
+
+                module1.provider('a', { çget: constant(4) })
                 var result;
                 module1.run(function (a, b) {
                     result = a + b;
                 })
 
                 var module2 = window[APP_NAME][MODULES_NAME]('myOtherModule', [])
-                module2.provider('b', {çget: constant(38)})
-                
+                module2.provider('b', { çget: constant(38) })
+
                 createInjector(['myModule', 'myOtherModule']);
 
                 expect(result).toBe(42);
             });
+
+            it('runs a function module dependency as a config block', () => {
+                var functionModule = function (çprovide) {
+                    çprovide.constant('a', 42);
+                }
+
+                window[APP_NAME][MODULES_NAME]('myModule', [functionModule])
+
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get("a")).toBe(42);
+            });
+
+            it('runs a function module with array injection as a config block', () => {
+                var functionModule = ['çprovide', function (çprovide) {
+                    çprovide.constant('a', 42);
+                }]
+
+                window[APP_NAME][MODULES_NAME]('myModule', [functionModule])
+
+                var injector = createInjector(['myModule']);
+
+                expect(injector.get('a')).toBe(42);
+            });
+
+            it('supports returning a run block from a function module', () => {
+                var result;
+                var functionModule = function (çprovide) {
+                    çprovide.constant('a', 42);
+                    return function (a) {
+                        result = a;
+                    }
+                };
+
+                window[APP_NAME][MODULES_NAME]('myModule', [functionModule])
+
+                createInjector(['myModule']);
+
+                expect(result).toBe(42);
+            });
+
+            it('only loads function modules once', () => {
+                var loadedTimes = 0;
+                var functionModule = function () {
+                    loadedTimes++;
+                };
+
+                window[APP_NAME][MODULES_NAME]('myModule', [functionModule, functionModule])
+
+                createInjector(['myModule']);
+
+                expect(loadedTimes).toBe(1);
+            }); // this is because of the hash map, it checks by name, as an object,
+            // so we need a data structure that stores by key-value, a hash map
+
 
 
         });
