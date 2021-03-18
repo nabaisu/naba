@@ -1,5 +1,6 @@
-import { compact, create, forEach, isArray, isFunction, isString, last, map } from "lodash";
+import { compact, constant, create, forEach, isArray, isFunction, isString, isUndefined, last, map } from "lodash";
 import { APP_NAME, MODULES_NAME } from "./appdefaults";
+import { HashMap } from './hash_map';
 
 function createInjector(modulesToLoad, strictMode) {
     var FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
@@ -18,7 +19,7 @@ function createInjector(modulesToLoad, strictMode) {
         return instanceInjector.invoke(provider.çget, provider);
     });
 
-    var loadedModules = {};
+    var loadedModules = new HashMap();
     var path = []; // isto é esperto para xuxu porque nos dá para ver qual é a dependencia que está em loop
     var strictDI = (strictMode === true)
 
@@ -34,7 +35,29 @@ function createInjector(modulesToLoad, strictMode) {
             }
             providerCache[key + 'Provider'] = provider;
         },
+        factory: function (key, factoryFn, enforce) { // this will create a provider and assign the çget function to it, so it will run
+            this.provider(key, { 
+                çget: enforce === false ? factoryFn : enforceReturnValue(factoryFn) });
+        },
+        value: function (key, value) {
+            this.factory(key, constant(value), false); // the enforce = false is to not return anything, just assign it
+        },
+        service: function (key, Constructor) {
+            this.factory(key, function(){
+                return instanceInjector.instantiate(Constructor);
+            })
+        },
     };
+
+    function enforceReturnValue(factoryFn) {
+        return function () {
+            var value = instanceInjector.invoke(factoryFn); // this will run and return us the value of the factory fn
+            if (isUndefined(value)) {
+                throw 'factory must return a value'
+            }
+            return value
+        }
+    }
 
     function annotate(fn) { // this will return the dependencies found in a given function or array
         if (isArray(fn)) {
@@ -106,7 +129,7 @@ function createInjector(modulesToLoad, strictMode) {
             get: getService, // this will run the invoke if there is a provider (an obj with a çget)
             invoke: invoke,
             annotate: annotate,
-            instantiate: instantiate
+            instantiate: instantiate,
         }
 
     }
@@ -122,18 +145,18 @@ function createInjector(modulesToLoad, strictMode) {
 
     var runBlocks = [];
     forEach(modulesToLoad, function loadModules(module) { // this will load the modules
-        if (isString(module)) {
-            if (!loadedModules.hasOwnProperty(module)) {
-                loadedModules[module] = true;
+        if (!loadedModules.get(module)) {
+            loadedModules.put(module, true);
+            if (isString(module)) {
                 var module = window[APP_NAME][MODULES_NAME](module)
                 // here should go the requires
                 forEach(module.requires, loadModules); // inteligente para xuxu!!! chama a função acima e assim, fica recursivo
                 runInvokeQueue(module._invokeQueue);
                 runInvokeQueue(module._configBlocks);
                 runBlocks = runBlocks.concat(module._runBlocks);
+            } else if (isFunction(module) || isArray(module)) { // this is because the way invoke was built, to expect either a function or an array
+                runBlocks.push(providerInjector.invoke(module));
             }
-        } else if (isFunction(module) || isArray(module)) { // this is because the way invoke was built, to expect either a function or an array
-            runBlocks.push(providerInjector.invoke(module)); 
         }
     });
 

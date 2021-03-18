@@ -26,6 +26,9 @@ function setupModuleLoader(window) {
             requires: requires, 
             constant: invokeLater('çprovide','constant', 'unshift'),
             provider: invokeLater('çprovide','provider'),
+            factory: invokeLater('çprovide','factory'),
+            value: invokeLater('çprovide','value'),
+            service: invokeLater('çprovide','service'),
             config: invokeLater('çinjector','invoke', 'push', configBlocks),
             run: function(fn){
                 moduleInstance._runBlocks.push(fn);
