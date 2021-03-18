@@ -36,16 +36,26 @@ function createInjector(modulesToLoad, strictMode) {
             providerCache[key + 'Provider'] = provider;
         },
         factory: function (key, factoryFn, enforce) { // this will create a provider and assign the çget function to it, so it will run
-            this.provider(key, { 
-                çget: enforce === false ? factoryFn : enforceReturnValue(factoryFn) });
+            this.provider(key, {
+                çget: enforce === false ? factoryFn : enforceReturnValue(factoryFn)
+            });
         },
         value: function (key, value) {
             this.factory(key, constant(value), false); // the enforce = false is to not return anything, just assign it
         },
         service: function (key, Constructor) {
-            this.factory(key, function(){
+            this.factory(key, function () {
                 return instanceInjector.instantiate(Constructor);
             })
+        },
+        decorator: function (serviceName, decoratorFn) {
+            var provider = providerInjector.get(serviceName + 'Provider');
+            var originalçget = provider.çget;
+            provider.çget = function () {
+                var instance = instanceInjector.invoke(originalçget, provider);
+                instanceInjector.invoke(decoratorFn, null, { çdelegate: instance }); // este çdelegate passa por cima do outro
+                return instance;
+            }
         },
     };
 

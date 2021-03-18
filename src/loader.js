@@ -29,6 +29,7 @@ function setupModuleLoader(window) {
             factory: invokeLater('çprovide','factory'),
             value: invokeLater('çprovide','value'),
             service: invokeLater('çprovide','service'),
+            decorator: invokeLater('çprovide','decorator'),
             config: invokeLater('çinjector','invoke', 'push', configBlocks),
             run: function(fn){
                 moduleInstance._runBlocks.push(fn);
