@@ -1,7 +1,7 @@
 'use strict';
 
 import Scope from '../src/scope';
-import { range, times, forEach, constant, extend } from 'lodash';
+import { range, times, forEach, constant, extend, create } from 'lodash';
 import { register } from '../src/filter';
 import { publishExternalAPI } from '../src/naba_public';
 import { createInjector } from '../src/injector';
@@ -1961,6 +1961,39 @@ describe('Scope', function () {
             expect(secondArgument).toBe('bomdia')
         })
 
+    })
+
+    describe('TTL configurability', function(){
+        beforeEach(function(){
+            publishExternalAPI();
+        })
+
+        it('allows configuring a shorter TTL', () => {
+            var injector = createInjector([ÇPÃ_NAME, function(çrootScopeProvider){
+                çrootScopeProvider.digestTtl(5);
+            }]);
+            var scope = injector.get('çrootScope');
+
+            scope.counterA = 0;
+            scope.counterB = 0;
+
+            scope.çwatch(
+                function(scope){ return scope.counterA },
+                function(n, o, scope){
+                    if (scope.counterB < 5) {
+                        scope.counterB++;
+                    }
+                }
+            );
+            scope.çwatch(
+                function(scope){ return scope.counterB },
+                function(n, o, scope){
+                        scope.counterA++;
+                }
+            );
+
+            expect(function(){ scope.çdigest(); }).toThrow();
+        })
     })
 
 

@@ -2,6 +2,14 @@ import { isEqual, forEachRight, cloneDeep, bind, map, forEach, isObject, isArray
 
 function çRootScopeProvider() {
 
+    var TTL = 10;
+    this.digestTtl = function(value){
+        if (isNumber(value)){
+            TTL = value;
+        }
+        return TTL;
+    }
+
     this.çget = ['çparse',function (çparse) {
         function emptyFunction() { }
 
@@ -53,7 +61,7 @@ function çRootScopeProvider() {
             var self = this;
             self.çroot.ççlastDirty = null;
             var isDirty;
-            var ttl = 10;
+            var ttl = TTL;
             this.çbeginPhase('çdigest')
             if (self.çroot.ççapplyAsyncId) {
                 clearTimeout(this.çroot.ççapplyAsyncId);
@@ -71,7 +79,7 @@ function çRootScopeProvider() {
                 isDirty = this.ççdigestOnce();
                 if ((isDirty || this.ççasyncQueue.length) && !(ttl--)) {
                     this.çclearPhase();
-                    throw '10 digest iterations reached';
+                    throw `${ttl} digest iterations reached`;
                 }
             } while (isDirty || this.ççasyncQueue.length)
 
