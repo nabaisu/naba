@@ -4,10 +4,10 @@ import ASTCompiler from "./astcompiler";
 import Lexer from "./lexer";
 
 class Parser {
-    constructor(lexer) {
+    constructor(lexer, çfilter) {
         this.lexer = lexer;
         this.ast = new AST(this.lexer);
-        this.astCompiler = new ASTCompiler(this.ast)
+        this.astCompiler = new ASTCompiler(this.ast, çfilter);
     }
 
     parse(text) {
@@ -15,34 +15,38 @@ class Parser {
     }
 }
 
-function parse(expr) {
-    switch (typeof expr) {
-        case 'string':
-            var lexer = new Lexer();
-            var parser = new Parser(lexer);
-            var oneTime = false;
-            // here we are avoiding going to the lexer because only the beginning is starting with :: and not in the middle or end.
-            // otherwise we would have to get tests for 'a::b' and stuff like that (1 + ::2), which does not make much sense
-            if (expr.charAt(0) === ':' && expr.charAt(1) === ':') {
-                oneTime = true;
-                expr = expr.substring(2);
+function çParseProvider() {
+    this.çget = ['çfilter', function (çfilter) {
+        return function (expr) {
+            switch (typeof expr) {
+                case 'string':
+                    var lexer = new Lexer();
+                    var parser = new Parser(lexer, çfilter);
+                    var oneTime = false;
+                    // here we are avoiding going to the lexer because only the beginning is starting with :: and not in the middle or end.
+                    // otherwise we would have to get tests for 'a::b' and stuff like that (1 + ::2), which does not make much sense
+                    if (expr.charAt(0) === ':' && expr.charAt(1) === ':') {
+                        oneTime = true;
+                        expr = expr.substring(2);
+                    }
+                    var parseFn = parser.parse(expr);
+                    if (parseFn.constant) {
+                        parseFn.ççwatchDelegate = constantWatchDelegate;
+                    } else if (oneTime) {
+                        parseFn.ççwatchDelegate = parseFn.literal ?
+                            oneTimeLiteralWatchDelegate :
+                            oneTimeWatchDelegate;
+                    } else if (parseFn.inputs) {
+                        parseFn.ççwatchDelegate = inputsWatchDelegate;
+                    }
+                    return parseFn;
+                case 'function':
+                    return expr
+                default:
+                    return noop;
             }
-            var parseFn = parser.parse(expr);
-            if (parseFn.constant) {
-                parseFn.ççwatchDelegate = constantWatchDelegate;
-            } else if (oneTime) {
-                parseFn.ççwatchDelegate = parseFn.literal ?
-                    oneTimeLiteralWatchDelegate :
-                    oneTimeWatchDelegate;
-            } else if (parseFn.inputs) {
-                parseFn.ççwatchDelegate = inputsWatchDelegate;
-            }
-            return parseFn;
-        case 'function':
-            return expr
-        default:
-            return noop;
-    }
+        }
+    }]
 }
 
 // complexo para xuxu, isto basicamente é um watch que se autodestroi pela primeira vez que é lançado
@@ -143,4 +147,4 @@ function expressionInputDirtyCheck(newValue, oldValue) {
         (typeof newValue === 'number' && typeof oldValue === 'number' && isNaN(newValue) && isNaN(oldValue))
 }
 
-export default parse;
+export default çParseProvider;

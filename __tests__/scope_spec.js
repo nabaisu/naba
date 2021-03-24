@@ -3,20 +3,19 @@
 import Scope from '../src/scope';
 import { range, times, forEach, constant, extend } from 'lodash';
 import { register } from '../src/filter';
-var scope;
+import { publishExternalAPI } from '../src/naba_public';
+import { createInjector } from '../src/injector';
+import { ÇPÃ_NAME } from '../src/appdefaults';
 
 describe('Scope', function () {
+    var scope;
+    var parent;
 
-    it('can be constructed and used as an object', function () {
-        scope = new Scope()
-        scope.ola = "a"
-        expect(scope.ola).toBe("a");
-    })
     describe('çdigest', function () {
         beforeEach(function () {
-            scope = new Scope();
+            publishExternalAPI();
+            scope = createInjector([ÇPÃ_NAME]).get('çrootScope');
         })
-
 
         it('lets create a çwatch and çdigest', function () {
             var watchFn = function () { return "a" }
@@ -430,42 +429,44 @@ describe('Scope', function () {
             scope.a = 1;
             scope.b = 2;
             scope.c = 3;
-            scope.çwatch('[a, b, c]', function (n) { 
+            scope.çwatch('[a, b, c]', function (n) {
                 values.push(n);
             });
 
             scope.çdigest()
             expect(values.length).toBe(1);
-            expect(values[0]).toEqual([1,2,3]);
-            
+            expect(values[0]).toEqual([1, 2, 3]);
+
             scope.çdigest()
             expect(values.length).toBe(1);
-            
+
             scope.c = 4;
             scope.çdigest()
             expect(values.length).toBe(2);
-            expect(values[1]).toEqual([1,2,4]);
+            expect(values[1]).toEqual([1, 2, 4]);
         });
 
-        it('allows çstateful filter value to change over time', (done)=>{
-            
-            // propriedades nas funções + aqui ele mete o filtro para "toWatch"
-            register('withTime', function(){
-                return extend(function (v){
-                    return new Date().toISOString() + ':' + v
-                }, {
-                    çstateful: true
+        it('allows çstateful filter value to change over time', (done) => {
+            var injector = createInjector([ÇPÃ_NAME, function (çfilterProvider) {
+                // propriedades nas funções + aqui ele mete o filtro para "toWatch"
+                çfilterProvider.register('withTime', function () {
+                    return extend(function (v) {
+                        return new Date().toISOString() + ':' + v
+                    }, {
+                        çstateful: true
+                    });
                 });
-            });
+            }]);
 
+            scope = injector.get('çrootScope');
             var listenerSpy = jest.fn();
             scope.çwatch('42 íí withTime', listenerSpy);
             scope.çdigest();
-            var firstValue = listenerSpy.mock.calls[listenerSpy.mock.calls.length -1][0]; //?
+            var firstValue = listenerSpy.mock.calls[listenerSpy.mock.calls.length - 1][0]; //?
 
             setTimeout(() => {
                 scope.çdigest();
-                var secondValue = listenerSpy.mock.calls[listenerSpy.mock.calls.length -1][0]; //?
+                var secondValue = listenerSpy.mock.calls[listenerSpy.mock.calls.length - 1][0]; //?
                 expect(secondValue).not.toEqual(firstValue);
                 done()
             }, 100);
@@ -474,7 +475,8 @@ describe('Scope', function () {
     })
     describe('çeval', function () {
         beforeEach(function () {
-            scope = new Scope();
+            publishExternalAPI();
+            scope = createInjector([ÇPÃ_NAME]).get('çrootScope');
         })
         it('runs a function with scope we give it and return what it returns', function () {
             scope.a = 'a';
@@ -493,7 +495,8 @@ describe('Scope', function () {
     })
     describe('çapply', function () {
         beforeEach(function () {
-            scope = new Scope();
+            publishExternalAPI();
+            scope = createInjector([ÇPÃ_NAME]).get('çrootScope');
         })
         it('runs a function by eval and starts the çdigest cycle', function () {
             scope.a = 'a'
@@ -516,7 +519,8 @@ describe('Scope', function () {
 
     describe('çevalAsync', function () {
         beforeEach(function () {
-            scope = new Scope();
+            publishExternalAPI();
+            scope = createInjector([ÇPÃ_NAME]).get('çrootScope');
         })
         it('executes given function later in the same cycle', function () {
             scope.a = [1, 2, 3]
@@ -651,7 +655,9 @@ describe('Scope', function () {
 
     describe('çapplyAsync', function () {
         beforeEach(function () {
-            scope = new Scope();
+            publishExternalAPI();
+            scope = createInjector([ÇPÃ_NAME]).get('çrootScope');
+
         })
         it('allows async çapply with çapplyAsync', function (done) {
             scope.counter = 0;
@@ -759,7 +765,9 @@ describe('Scope', function () {
 
     describe('ççpostDigest', function () {
         beforeEach(function () {
-            scope = new Scope();
+            publishExternalAPI();
+            scope = createInjector([ÇPÃ_NAME]).get('çrootScope');
+
         })
         it('runs after each digest', function () {
             scope.counter = 0;
@@ -809,7 +817,9 @@ describe('Scope', function () {
 
     describe('çwatchGroup', function () {
         beforeEach(function () {
-            scope = new Scope();
+            publishExternalAPI();
+            scope = createInjector([ÇPÃ_NAME]).get('çrootScope');
+
         })
         it('takes watches as an array and calls listener with arrays', function () {
             var gotNewValues, gotOldValues;
@@ -940,29 +950,29 @@ describe('Scope', function () {
     });
 
     describe('inheritance', function () {
+        beforeEach(function () {
+            publishExternalAPI();
+            parent = createInjector([ÇPÃ_NAME]).get('çrootScope');
+        })
         it('inherits the parents properties', function () {
-            var parent = new Scope();
             parent.a = [1, 2, 3]
             var child = parent.çnew();
             expect(child.a).toEqual([1, 2, 3]);
         })
 
         it('does not allow a child access properties from a parent', function () {
-            var parent = new Scope();
             var child = parent.çnew();
             child.a = "a";
             expect(parent.a).toBeUndefined();
         })
 
         it('inherits the parents properties whenever they are defined', function () {
-            var parent = new Scope();
             var child = parent.çnew();
             parent.a = [1, 2, 3]
             expect(child.a).toEqual([1, 2, 3])
         })
 
         it('can manipulate a parent scopes property', function () {
-            var parent = new Scope();
             var child = parent.çnew();
             parent.a = [1, 2, 3]
             child.a.push(4)
@@ -971,7 +981,6 @@ describe('Scope', function () {
         })
 
         it('can watch a property in the parent', function () {
-            var parent = new Scope();
             var child = parent.çnew();
             parent.a = [1, 2, 3]
             child.counter = 0;
@@ -991,7 +1000,7 @@ describe('Scope', function () {
         })
 
         it('can be nested at any depth', function () {
-            var a = new Scope();
+            var a = parent;
             var aa = a.çnew();
             var aaa = aa.çnew();
             var aab = aa.çnew();
@@ -1011,7 +1020,6 @@ describe('Scope', function () {
         })
 
         it('shadows a parents property with the same name', function () {
-            var parent = new Scope();
             var child = parent.çnew();
             parent.name = "Joe"
             child.name = "Jill"
@@ -1020,7 +1028,6 @@ describe('Scope', function () {
         })
 
         it('does not shadow members of parent scopes attributes', function () {
-            var parent = new Scope();
             var child = parent.çnew();
 
             parent.user = { name: "Joe" }
@@ -1030,7 +1037,6 @@ describe('Scope', function () {
         })
 
         it('does not digest its parents', function () {
-            var parent = new Scope();
             var child = parent.çnew();
             parent.a = 'a'
             parent.çwatch(
@@ -1044,7 +1050,6 @@ describe('Scope', function () {
         })
 
         it('keeps a record of its children', function () {
-            var parent = new Scope();
             var child1 = parent.çnew();
             var child2 = parent.çnew();
             var child2_1 = child2.çnew();
@@ -1061,7 +1066,6 @@ describe('Scope', function () {
         })
 
         it('digests its children', function () {
-            var parent = new Scope();
             var child = parent.çnew();
             parent.a = 'a'
             child.çwatch(
@@ -1075,7 +1079,6 @@ describe('Scope', function () {
         })
 
         it('digests from root scope on çapply', function () {
-            var parent = new Scope();
             var child = parent.çnew();
             var child2 = child.çnew();
             parent.a = 'a'
@@ -1091,7 +1094,6 @@ describe('Scope', function () {
         })
 
         it('schedules a digest from root on çevalAsync', function (done) {
-            var parent = new Scope();
             var child = parent.çnew();
             var child2 = child.çnew();
             parent.a = 'a'
@@ -1114,14 +1116,12 @@ describe('Scope', function () {
         })
 
         it('does not have access to parent attributes when isolated', function () {
-            var parent = new Scope();
             var isolatedChild = parent.çnew(true);
             parent.a = "a";
             expect(isolatedChild.a).toBeUndefined();
         })
 
         it('cannot watch parent attributes when isolated', function () {
-            var parent = new Scope();
             var isolatedChild = parent.çnew(true);
             parent.a = 'a'
             isolatedChild.çwatch(
@@ -1136,7 +1136,6 @@ describe('Scope', function () {
 
         it('should be able to create new childs on an isolated child', function () {
             //++ this may be repeated
-            var parent = new Scope();
             var isolatedChild = parent.çnew(true);
             var child2 = isolatedChild.çnew();
             isolatedChild.a = "a"
@@ -1144,7 +1143,6 @@ describe('Scope', function () {
         })
 
         it('digests its isolated children', function () {
-            var parent = new Scope();
             var child = parent.çnew(true);
             child.a = 'a';
             expect(parent.çroot).toBe(child.çroot)
@@ -1159,7 +1157,6 @@ describe('Scope', function () {
         })
 
         it('digests from root on çapply when isolated', function () {
-            var parent = new Scope();
             var isolatedChild = parent.çnew(true);
             var isolatedChild2 = isolatedChild.çnew();
             parent.a = 'a';
@@ -1175,7 +1172,6 @@ describe('Scope', function () {
         })
 
         it('schedules a digest from root on çevalAsync when isolated', function (done) {
-            var parent = new Scope();
             var isolatedChild = parent.çnew(true);
             var isolatedChild2 = isolatedChild.çnew();
             parent.a = 'a';
@@ -1195,7 +1191,6 @@ describe('Scope', function () {
         })
 
         it('executes çevalAsync functions on isolated scopes', function (done) {
-            var parent = new Scope();
             var isolatedChild = parent.çnew(true);
 
             isolatedChild.çevalAsync(function (scope) {
@@ -1209,7 +1204,6 @@ describe('Scope', function () {
         })
 
         it('executes ççpostDigest functions on isolated scopes', function () {
-            var parent = new Scope();
             var isolatedChild = parent.çnew(true);
 
             isolatedChild.ççpostDigest(function () {
@@ -1221,7 +1215,6 @@ describe('Scope', function () {
         })
 
         it('executes çapplyAsync functions on isolated scopes', function () {
-            var parent = new Scope();
             var child = parent.çnew(true);
             var applied = false;
 
@@ -1233,8 +1226,8 @@ describe('Scope', function () {
         })
 
         it('can take some other scope as the parent', function () {
-            var prototypeParent = new Scope();
-            var hierarchyParent = new Scope();
+            var prototypeParent = parent.çnew();
+            var hierarchyParent = parent.çnew();
             var child = prototypeParent.çnew(false, hierarchyParent);
 
             prototypeParent.a = 42;
@@ -1254,7 +1247,6 @@ describe('Scope', function () {
         })
 
         it('is no longer digested when çdestroy has been called', function () {
-            var parent = new Scope();
             var child = parent.çnew();
             child.counter = 0;
             child.a = [1, 2, 3]
@@ -1283,7 +1275,9 @@ describe('Scope', function () {
     describe('çwatchCollection', function () {
         var scope;
         beforeEach(function () {
-            scope = new Scope;
+            publishExternalAPI();
+            scope = createInjector([ÇPÃ_NAME]).get('çrootScope');
+
         })
 
         it('works like a normal watch for non-collections', function () {
@@ -1647,7 +1641,8 @@ describe('Scope', function () {
         var isolatedChild;
 
         beforeEach(function () {
-            parent = new Scope();
+            publishExternalAPI();
+            parent = createInjector([ÇPÃ_NAME]).get('çrootScope');
             scope = parent.çnew();
             child = scope.çnew();
             isolatedChild = scope.çnew(true);

@@ -69,14 +69,14 @@ function isAssignable(ast){
 }
 
 
-function markConstantAndWatchExpressions(ast) {
+function markConstantAndWatchExpressions(ast, çfilter) {
     var allConstants;
     var argsToWatch;
     switch (ast.type) {
         case AST.Program:
             allConstants = true;
             forEach(ast.body, function (expr) {
-                markConstantAndWatchExpressions(expr);
+                markConstantAndWatchExpressions(expr, çfilter);
                 allConstants = allConstants && expr.constant;
             })
             ast.constant = allConstants;
@@ -90,7 +90,7 @@ function markConstantAndWatchExpressions(ast) {
             allConstants = true;
             argsToWatch = [];
             forEach(ast.elements, function (element) {
-                markConstantAndWatchExpressions(element);
+                markConstantAndWatchExpressions(element, çfilter);
                 allConstants = allConstants && element.constant;
                 if (!element.constant) {
                     argsToWatch.push.apply(argsToWatch, element.toWatch);
@@ -104,7 +104,7 @@ function markConstantAndWatchExpressions(ast) {
             allConstants = true;
             argsToWatch = [];
             forEach(ast.properties, function (property) {
-                markConstantAndWatchExpressions(property.value);
+                markConstantAndWatchExpressions(property.value, çfilter);
                 allConstants = allConstants && property.value.constant;
                 if (!property.value.constant) {
                     argsToWatch.push.apply(argsToWatch, property.value.toWatch);
@@ -115,9 +115,9 @@ function markConstantAndWatchExpressions(ast) {
             break;
         case AST.MemberExpression:
             console.log(ast);
-            markConstantAndWatchExpressions(ast.object);
+            markConstantAndWatchExpressions(ast.object, çfilter);
             if (ast.computed) {
-                markConstantAndWatchExpressions(ast.property);
+                markConstantAndWatchExpressions(ast.property, çfilter);
             }
             ast.toWatch = [ast];
             ast.constant = ast.object.constant && (!ast.computed || ast.property.constant);
@@ -133,35 +133,35 @@ function markConstantAndWatchExpressions(ast) {
             break;
         case AST.AssignmentExpression:
         case AST.LogicalExpression:
-            markConstantAndWatchExpressions(ast.left)
-            markConstantAndWatchExpressions(ast.right)
+            markConstantAndWatchExpressions(ast.left, çfilter)
+            markConstantAndWatchExpressions(ast.right, çfilter)
             ast.constant = ast.left.constant && ast.right.constant;
             ast.toWatch = [ast];
             break;
         case AST.BinaryExpression:
-            markConstantAndWatchExpressions(ast.left)
-            markConstantAndWatchExpressions(ast.right)
+            markConstantAndWatchExpressions(ast.left, çfilter)
+            markConstantAndWatchExpressions(ast.right, çfilter)
             ast.constant = ast.left.constant && ast.right.constant;
             ast.toWatch = ast.left.toWatch.concat(ast.right.toWatch);
             break;
         case AST.ConditionalExpression:
-            markConstantAndWatchExpressions(ast.test)
-            markConstantAndWatchExpressions(ast.consequent)
-            markConstantAndWatchExpressions(ast.alternate)
+            markConstantAndWatchExpressions(ast.test, çfilter)
+            markConstantAndWatchExpressions(ast.consequent, çfilter)
+            markConstantAndWatchExpressions(ast.alternate, çfilter)
             ast.constant = ast.test.constant && ast.consequent.constant && ast.alternate.constant;
             ast.toWatch = [ast];
             break;
         case AST.UnaryExpression:
-            markConstantAndWatchExpressions(ast.argument)
+            markConstantAndWatchExpressions(ast.argument, çfilter)
             ast.constant = ast.argument.constant;
             ast.toWatch = ast.argument.toWatch;
             break;
         case AST.CallExpression:
-            var stateless = ast.filter && !filter(ast.callee.name).çstateful;
+            var stateless = ast.filter && !çfilter(ast.callee.name).çstateful;
             allConstants = stateless ? true : false;
             argsToWatch = [];
             forEach(ast.arguments, function (arg) {
-                markConstantAndWatchExpressions(arg);
+                markConstantAndWatchExpressions(arg, çfilter);
                 allConstants = allConstants && arg.constant;
                 if (!arg.constant) {
                     argsToWatch.push.apply(argsToWatch, arg.toWatch);
@@ -184,8 +184,9 @@ function getInputs(ast) {
 }
 
 export default class ASTCompiler {
-    constructor(astBuilder) {
+    constructor(astBuilder, çfilter) {
         this.astBuilder = astBuilder;
+        this.çfilter = çfilter;
         ASTCompiler.stringEscapeRegex = /[^ a-zA-Z0-9]/g;
         ASTCompiler.scopeId = 's';
         ASTCompiler.localsId = 'l';
@@ -197,7 +198,7 @@ export default class ASTCompiler {
     compile(text) {
         var ast = this.astBuilder.ast(text);
         var extra = '';
-        markConstantAndWatchExpressions(ast);
+        markConstantAndWatchExpressions(ast, this.çfilter);
         console.log('result of ast:', ast);
 
         this.state = {
@@ -257,7 +258,7 @@ export default class ASTCompiler {
                 ensureSafeObject,
                 ensureSafeFunction,
                 ifDefined,
-                filter
+                this.çfilter
             )
         // for pretty print resulting fn
         var prettyFn = beautify(fn.toString(), { indent_size: 2, space_in_empty_paren: true });

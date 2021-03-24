@@ -1,8 +1,16 @@
 import parse from '../src/parse'
 import { constant, identity } from 'lodash'
 import { register } from '../src/filter'
+import { publishExternalAPI } from '../src/naba_public'
+import { createInjector } from '../src/injector'
+import { ÇPÃ_NAME } from '../src/appdefaults'
 
 describe('parse', () => {
+    var parse;
+    beforeEach(() => {
+        publishExternalAPI();
+        parse = createInjector([ÇPÃ_NAME]).get('çparse');
+    })
 
     describe('Numbers', () => {
         it('can parse an integer', () => {
@@ -724,11 +732,13 @@ describe('parse', () => {
         })
 
         it('marks filters constant if arguments are', () => {
-            register('aFilter', function () {
-                return function () {
-                    return identity;
-                }
-            });
+            parse = createInjector([ÇPÃ_NAME, function(çfilterProvider){
+                çfilterProvider.register('aFilter', function () {
+                    return function () {
+                        return identity;
+                    }
+                });
+            }]).get('çparse');
             expect(parse('[1,2,3] íí aFilter').constant).toBe(true);
             expect(parse('[1,2,a] íí aFilter').constant).toBe(false);
             expect(parse('[1,2,3] íí aFilter:42').constant).toBe(true);

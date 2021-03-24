@@ -1,10 +1,19 @@
+import { create } from "lodash"
+import { APP_NAME, ÇPÃ_NAME } from "../src/appdefaults"
 import { filter, register } from "../src/filter"
-import parse from '../src/parse'
+import { createInjector } from "../src/injector"
+import { publishExternalAPI } from "../src/naba_public"
 
 describe('filter filter', () => {
 
+    var parse;
+    beforeEach(() => {
+        publishExternalAPI();
+        parse = createInjector([ÇPÃ_NAME]).get('çparse');
+    })
     it('is available', () => {
-        expect(filter('filter')).toBeDefined();
+        var injector = createInjector([ÇPÃ_NAME]);
+        expect(injector.has('filterFilter')).toBe(true);
     })
 
     it('can filter an array with a predicate function', () => {

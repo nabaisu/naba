@@ -30,6 +30,7 @@ function setupModuleLoader(window) {
             value: invokeLater('çprovide','value'),
             service: invokeLater('çprovide','service'),
             decorator: invokeLater('çprovide','decorator'),
+            filter: invokeLater('çfilterProvider','register'),
             config: invokeLater('çinjector','invoke', 'push', configBlocks),
             run: function(fn){
                 moduleInstance._runBlocks.push(fn);
