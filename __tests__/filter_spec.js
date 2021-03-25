@@ -2,7 +2,6 @@ import { repeat } from "lodash"
 import { APP_NAME, MODULES_NAME, ÇPÃ_NAME } from "../src/appdefaults"
 import { createInjector } from "../src/injector"
 import { publishExternalAPI } from "../src/naba_public"
-import çParseProvider from "../src/parse"
 
 describe('filter', () => {
     var parse;

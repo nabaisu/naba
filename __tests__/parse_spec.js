@@ -1,6 +1,4 @@
-import parse from '../src/parse'
 import { constant, identity } from 'lodash'
-import { register } from '../src/filter'
 import { publishExternalAPI } from '../src/naba_public'
 import { createInjector } from '../src/injector'
 import { ÇPÃ_NAME } from '../src/appdefaults'

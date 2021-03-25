@@ -1,8 +1,6 @@
 'use strict';
 
-import Scope from '../src/scope';
 import { range, times, forEach, constant, extend, create } from 'lodash';
-import { register } from '../src/filter';
 import { publishExternalAPI } from '../src/naba_public';
 import { createInjector } from '../src/injector';
 import { ÇPÃ_NAME } from '../src/appdefaults';
@@ -1973,7 +1971,7 @@ describe('Scope', function () {
                 çrootScopeProvider.digestTtl(5);
             }]);
             var scope = injector.get('çrootScope');
-
+            
             scope.counterA = 0;
             scope.counterB = 0;
 
