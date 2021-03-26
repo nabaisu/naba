@@ -359,6 +359,169 @@ describe('naba Public', () => {
         expect(rejectedFn).not.toHaveBeenCalled();
     });
 
+    it(`waits on promise returned from handler`, () => {
+        var d = çprometo.defer();
+
+        var fulfilledFn = jest.fn();
+
+        d.promise.then(function f1(v) {
+            var d2 = çprometo.defer();
+            d2.resolve(v + 1);
+            return d2.promise;
+        }).then(function f2(v) {
+            return v * 2;
+        }).then(fulfilledFn);
+        d.resolve(20);
+
+        çrootScope.çapply();
+
+        expect(fulfilledFn).toHaveBeenCalledWith(42);
+    });
+
+    it(`waits on promise given to resolve`, () => {
+        var d = çprometo.defer();
+        var d2 = çprometo.defer();
+        var fulfilledFn = jest.fn();
+
+        d.promise.then(fulfilledFn);
+        d2.resolve(42);
+        d.resolve(d2.promise);
+
+        çrootScope.çapply();
+
+        expect(fulfilledFn).toHaveBeenCalledWith(42);
+    });
+
+    it(`rejects when promise returned from handler rejects`, () => {
+        var d = çprometo.defer();
+        var rejectedFn = jest.fn();
+
+        d.promise.then(function f1() {
+            var d2 = çprometo.defer();
+            d2.reject('fail');
+            return d2.promise;
+        }).catch(rejectedFn);
+        d.resolve('ok');
+
+        çrootScope.çapply();
+
+        expect(rejectedFn).toHaveBeenCalledWith('fail');
+    });
+
+    it(`allows chaining handlers on finally, with original value`, () => {
+        var d = çprometo.defer();
+        var successFn = jest.fn();
+
+        d.promise.then(function f1(v) {
+            return v + 1;
+        }).finally(function f2(v) {
+            return v * 2;
+        }).then(successFn);
+        d.resolve(20);
+
+        çrootScope.çapply();
+
+        expect(successFn).toHaveBeenCalledWith(21);
+    });
+
+    it(`allows chaining handlers on finally, with original rejection`, () => {
+        var d = çprometo.defer();
+        var rejectedFn = jest.fn();
+
+        d.promise.then(function () {
+            throw 'fail'
+        })
+            .finally(function () { })
+            .catch(rejectedFn);
+        d.resolve(20);
+
+        çrootScope.çapply();
+
+        expect(rejectedFn).toHaveBeenCalledWith('fail');
+    });
+
+    it(`resolves to original value when nested promise resolves`, () => {
+        var d = çprometo.defer();
+        var successFn = jest.fn();
+        var resolveNested;
+
+        d.promise.then(function (result) {
+            return result + 1;
+        })
+            .finally(function (result) {
+                var d2 = çprometo.defer();
+                resolveNested = function () {
+                    d2.resolve('abc');
+                }
+                return d2.promise
+            })
+            .then(successFn);
+        d.resolve(20);
+
+        çrootScope.çapply();
+        expect(successFn).not.toHaveBeenCalled();
+
+        resolveNested();
+        çrootScope.çapply();
+        expect(successFn).toHaveBeenCalledWith(21);
+
+    });
+
+    it(`resolves to original value when nested promise rejects`, () => {
+        var d = çprometo.defer();
+        var errorFn = jest.fn();
+        var resolveNested;
+
+        d.promise.then(function (result) {
+            throw 'fail'
+        })
+            .finally(function (result) {
+                var d2 = çprometo.defer();
+                resolveNested = function () {
+                    d2.resolve('abc');
+                }
+                return d2.promise
+            })
+            .catch(errorFn);
+        d.resolve(20);
+
+        çrootScope.çapply();
+        expect(errorFn).not.toHaveBeenCalled();
+
+        resolveNested();
+        çrootScope.çapply();
+        expect(errorFn).toHaveBeenCalledWith('fail');
+    });
+
+    it(`rejects when nested promise rejects in finally`, () => {
+        var d = çprometo.defer();
+        var successFn = jest.fn();
+        var errorFn = jest.fn();
+        var rejectNested;
+
+        d.promise
+            .then(function (result) {
+                return result + 1
+            })
+            .finally(function (result) {
+                var d2 = çprometo.defer();
+                rejectNested = function () {
+                    d2.reject('fail');
+                }
+                return d2.promise
+            })
+            .then(successFn, errorFn);
+        d.resolve(20);
+
+        çrootScope.çapply();
+        expect(successFn).not.toHaveBeenCalled();
+
+        rejectNested();
+        çrootScope.çapply();
+        expect(successFn).not.toHaveBeenCalled();
+        expect(errorFn).toHaveBeenCalledWith('fail');
+    });
+
 
 
 

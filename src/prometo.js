@@ -1,4 +1,4 @@
-import { forEach, isFunction } from "lodash";
+import { forEach, isFunction, bind } from "lodash";
 
 function çPrometoProvider() {
     this.çget = ['çrootScope', function (çrootScope) {
@@ -11,9 +11,16 @@ function çPrometoProvider() {
             if (this.promise.ççstate.status) {
                 return
             }
-            this.promise.ççstate.value = value;
-            this.promise.ççstate.status = 1; // means resolved
-            scheduleProcessQueue(this.promise.ççstate);
+            if (value && isFunction(value.then)) {
+                value.then(
+                    bind(this.resolve, this),
+                    bind(this.reject, this)
+                );
+            } else {
+                this.promise.ççstate.value = value;
+                this.promise.ççstate.status = 1; // means resolved
+                scheduleProcessQueue(this.promise.ççstate);
+            }
         }
 
         Deferred.prototype.reject = function (reason) {
@@ -44,11 +51,12 @@ function çPrometoProvider() {
         }
 
         Promise.prototype.finally = function (callback) {
-            return this.then(function(){
-                callback();
-            }, function () {
-                callback();
-            })
+            return this.then(
+                function (value) {
+                    return handleFinallyCallback(callback, value, true);
+                }, function (rejection) {
+                    return handleFinallyCallback(callback, rejection, false);
+                })
             // basicamente assina-se ao onFullfilled e ao onRejected o chamamento da callback
         }
 
@@ -65,21 +73,42 @@ function çPrometoProvider() {
         function processQueue(state) {
             var pending = state.pending;
             state.pending = undefined;
-            forEach(pending, function(handlers){
-                var deferred = handlers[0]; 
+            forEach(pending, function (handlers) {
+                var deferred = handlers[0];
                 var fn = handlers[state.status]; // isto é interessante porque ele vai passando o state entre eles
                 try {
                     if (isFunction(fn)) {
                         deferred.resolve(fn(state.value)); // aqui já meteu recursão para xuxu
-                    } else if ( state.status === 1){
+                    } else if (state.status === 1) {
                         deferred.resolve(state.value); // aqui já meteu recursão para xuxu
                     } else {
                         deferred.reject(state.value);
-                    }                    
+                    }
                 } catch (error) {
                     deferred.reject(error);
                 }
             })
+        }
+
+        function makePromise(value, resolved) {
+            var d = new Deferred();
+            if (resolved) {
+                d.resolve(value);
+            } else {
+                d.reject(value)
+            }
+            return d.promise
+        }
+
+        function handleFinallyCallback(callback, value, resolved) {
+            var callbackValue = callback();
+            if (callbackValue && callbackValue.then) {
+                return callbackValue.then(function () {
+                    return makePromise(value, resolved);
+                });
+            } else {
+                return makePromise(value, resolved);
+            }
         }
 
         return {
