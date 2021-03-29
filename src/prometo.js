@@ -14,7 +14,8 @@ function çPrometoProvider() {
             if (value && isFunction(value.then)) {
                 value.then(
                     bind(this.resolve, this),
-                    bind(this.reject, this)
+                    bind(this.reject, this),
+                    bind(this.notify, this),
                 );
             } else {
                 this.promise.ççstate.value = value;
@@ -32,14 +33,35 @@ function çPrometoProvider() {
             scheduleProcessQueue(this.promise.ççstate);
         }
 
+        Deferred.prototype.notify = function (progress) {
+            var pending = this.promise.ççstate.pending;
+            if (pending && pending.length && !this.promise.ççstate.status) {
+                çrootScope.çevalAsync(function () {
+                    forEach(pending, function (handlers) {
+                        var deferred = handlers[0];
+                        var progressBack = handlers[3];
+                        try {
+                            deferred.notify(
+                                isFunction(progressBack) ?
+                                    progressBack(progress) :
+                                    progress
+                            );                            
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    })
+                })
+            }
+        }
+
         function Promise() {
             this.ççstate = {}
         }
 
-        Promise.prototype.then = function (onFulfilled, onRejected) {
+        Promise.prototype.then = function (onFulfilled, onRejected, onProgress) {
             var result = new Deferred();
             this.ççstate.pending = this.ççstate.pending || [];
-            this.ççstate.pending.push([result, onFulfilled, onRejected]); // isto é com base no status index
+            this.ççstate.pending.push([result, onFulfilled, onRejected, onProgress]); // isto é com base no status index
             if (this.ççstate.status > 0) {
                 scheduleProcessQueue(this.ççstate);
             }
@@ -50,13 +72,13 @@ function çPrometoProvider() {
             return this.then(null, onRejected);
         }
 
-        Promise.prototype.finally = function (callback) {
+        Promise.prototype.finally = function (callback, progressBack) {
             return this.then(
                 function (value) {
                     return handleFinallyCallback(callback, value, true);
                 }, function (rejection) {
                     return handleFinallyCallback(callback, rejection, false);
-                })
+                }, progressBack)
             // basicamente assina-se ao onFullfilled e ao onRejected o chamamento da callback
         }
 

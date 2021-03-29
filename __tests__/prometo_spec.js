@@ -522,6 +522,138 @@ describe('naba Public', () => {
         expect(errorFn).toHaveBeenCalledWith('fail');
     });
 
+    it(`can report progress`, () => {
+        var d = çprometo.defer();
+        var progressFn = jest.fn();
+
+        d.promise.then(null, null, progressFn)
+        d.notify('working...');
+
+        çrootScope.çapply();
+        expect(progressFn).toHaveBeenCalledWith('working...');
+    });
+
+    it(`notify can be called more than once`, () => {
+        var d = çprometo.defer();
+        var progressFn = jest.fn();
+
+        d.promise.then(null, null, progressFn)
+
+        d.notify('40%');
+        çrootScope.çapply();
+
+        d.notify('80%');
+        d.notify('100%');
+        çrootScope.çapply();
+
+        expect(progressFn).toHaveBeenCalledTimes(3);
+    });
+    it(`does not notify progress after being resolved`, () => {
+        var d = çprometo.defer();
+        var progressFn = jest.fn();
+
+        d.promise.then(null, null, progressFn)
+
+        d.resolve('ok');
+        d.notify('didirun?');
+        çrootScope.çapply();
+
+        expect(progressFn).not.toHaveBeenCalled();
+    });
+
+    it(`does not notify progress after being rejected`, () => {
+        var d = çprometo.defer();
+        var progressFn = jest.fn();
+
+        d.promise.then(null, null, progressFn)
+
+        d.reject('fail');
+        d.notify('didirun?');
+        çrootScope.çapply();
+
+        expect(progressFn).not.toHaveBeenCalled();
+    });
+
+    it(`can notify progress through chain`, () => {
+        var d = çprometo.defer();
+        var progressFn = jest.fn();
+
+        d.promise
+            .then(noop)
+            .catch(noop)
+            .then(null, null, progressFn)
+
+        d.notify('working...');
+        çrootScope.çapply();
+
+        expect(progressFn).toHaveBeenCalledWith('working...');
+    });
+
+    it(`transforms progress through handlers`, () => {
+        var d = çprometo.defer();
+        var progressFn = jest.fn();
+
+        d.promise
+            .then(noop)
+            .then(null, null, function (progress) {
+                return `***${progress}***`;
+            })
+            .catch(noop)
+            .then(null, null, progressFn)
+
+        d.notify('working...');
+        çrootScope.çapply();
+
+        expect(progressFn).toHaveBeenCalledWith('***working...***');
+    });
+
+    it(`recovers from progressBack exceptions`, () => {
+        var d = çprometo.defer();
+        var successFn = jest.fn();
+        var progressFn = jest.fn();
+
+        d.promise.then(null, null, function (progress) {
+            throw 'fail'
+        })
+        d.promise.then(successFn, null, progressFn)
+
+        d.notify('working...');
+        d.resolve('ok');
+        çrootScope.çapply();
+
+        expect(progressFn).toHaveBeenCalledWith('working...');
+        expect(successFn).toHaveBeenCalledWith('ok');
+    });
+
+    it(`can notify progress through promise returned from handler`, () => {
+        var d = çprometo.defer();
+
+        var progressFn = jest.fn();
+        d.promise.then(null, null, progressFn)
+
+        var d2 = çprometo.defer();
+        // resolve original with nested promise
+        d.resolve(d2.promise);
+        // notify on the nested promise
+        d.notify('working...');
+
+        çrootScope.çapply();
+
+        expect(progressFn).toHaveBeenCalledWith('working...');
+    });
+
+    it(`allows attaching progressBack in finally`, () => {
+        var d = çprometo.defer();
+
+        var progressFn = jest.fn();
+        d.promise.finally(null, progressFn)
+
+        d.notify('working...');
+        çrootScope.çapply();
+
+        expect(progressFn).toHaveBeenCalledWith('working...');
+    });
+
 
 
 
