@@ -1,4 +1,4 @@
-import { forEach, isFunction, bind } from "lodash";
+import { forEach, isFunction, bind, result, isArray, isObject } from "lodash";
 
 function çPrometoProvider() {
     this.çget = ['çrootScope', function (çrootScope) {
@@ -45,7 +45,7 @@ function çPrometoProvider() {
                                 isFunction(progressBack) ?
                                     progressBack(progress) :
                                     progress
-                            );                            
+                            );
                         } catch (e) {
                             console.error(e);
                         }
@@ -80,10 +80,6 @@ function çPrometoProvider() {
                     return handleFinallyCallback(callback, rejection, false);
                 }, progressBack)
             // basicamente assina-se ao onFullfilled e ao onRejected o chamamento da callback
-        }
-
-        function defer() {
-            return new Deferred();
         }
 
         function scheduleProcessQueue(state) {
@@ -133,8 +129,50 @@ function çPrometoProvider() {
             }
         }
 
+        function defer() {
+            return new Deferred();
+        }
+
+        function reject(rejection) {
+            var d = defer();
+            d.reject(rejection);
+            return d.promise;
+        }
+
+        function when(value, callback, errBack, progressBack) {
+            var d = defer();
+            d.resolve(value);
+            return d.promise.then(callback, errBack, progressBack);
+        }
+
+        function all(promises) {
+            var results = (isArray(promises)) ? [] : {};
+            var counter = 0;
+            var d = defer();
+            forEach(promises, function (promise, index) {
+                counter++;
+                when(promise).then(function (value) {
+                    results[index] = value;
+                    counter--;
+                    if (!counter) {
+                        d.resolve(results);
+                    }
+                }, function (rejection) {
+                    d.reject(rejection);
+                })
+            })
+            if (!counter) {
+                d.resolve(results);
+            }
+            return d.promise;
+        }
+
         return {
-            defer: defer
+            defer: defer,
+            reject: reject,
+            when: when,
+            resolve: when,
+            all: all
         }
     }]
 }

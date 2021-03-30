@@ -654,9 +654,163 @@ describe('naba Public', () => {
         expect(progressFn).toHaveBeenCalledWith('working...');
     });
 
+    it(`can make an immediately rejected promise`, () => {
+        var successFn = jest.fn();
+        var errorFn = jest.fn();
 
+        var promise = çprometo.reject('fail');
+        promise.then(successFn, errorFn);
 
+        çrootScope.çapply();
 
+        expect(successFn).not.toHaveBeenCalled();
+        expect(errorFn).toHaveBeenCalledWith('fail');
+    });
 
+    it(`can make an immediately resolved promise`, () => {
+        var successFn = jest.fn();
+        var errorFn = jest.fn();
 
+        var promise = çprometo.when('ok');
+        promise.then(successFn, errorFn);
+
+        çrootScope.çapply();
+
+        expect(errorFn).not.toHaveBeenCalled();
+        expect(successFn).toHaveBeenCalledWith('ok');
+    });
+
+    it(`can wrap a foreign promise`, () => {
+        var successFn = jest.fn();
+        var errorFn = jest.fn();
+
+        var promise = çprometo.when(
+            {
+                then: function (handler) {
+                    çrootScope.çevalAsync(function () {
+                        handler('ok');
+                    })
+                }
+            }
+        );
+        promise.then(successFn, errorFn);
+
+        çrootScope.çapply();
+
+        expect(errorFn).not.toHaveBeenCalled();
+        expect(successFn).toHaveBeenCalledWith('ok');
+    });
+
+    it(`takes callbacks directly when wrapping`, () => {
+        var successFn = jest.fn();
+        var errorFn = jest.fn();
+        var progressFn = jest.fn();
+
+        var wrapped = çprometo.defer();
+        çprometo.when(
+            wrapped.promise,
+            successFn,
+            errorFn,
+            progressFn
+        );
+
+        wrapped.notify('working...');
+        wrapped.resolve('ok');
+
+        çrootScope.çapply();
+
+        expect(successFn).toHaveBeenCalledWith('ok');
+        expect(errorFn).not.toHaveBeenCalled();
+        expect(progressFn).toHaveBeenCalledWith('working...');
+    });
+
+    it(`makes an immediately resolved promise with resolve`, () => {
+        var successFn = jest.fn();
+        var errorFn = jest.fn();
+
+        var promise = çprometo.resolve('ok');
+        promise.then(successFn, errorFn);
+
+        çrootScope.çapply();
+
+        expect(successFn).toHaveBeenCalledWith('ok');
+        expect(errorFn).not.toHaveBeenCalled();
+    });
+
+    describe('all', function () {
+
+        it(`can resolve an array of promises to array of results`, () => {
+            var promise = çprometo.all([
+                çprometo.when(1),
+                çprometo.when(2),
+                çprometo.when(3)
+            ])
+            var successFn = jest.fn();
+            promise.then(successFn);
+
+            çrootScope.çapply();
+
+            expect(successFn).toHaveBeenCalledWith([1, 2, 3]);
+        });
+
+        it(`can resolve an object of promises to an object of results`, () => {
+            var promise = çprometo.all({
+                a: çprometo.when(1),
+                b: çprometo.when(2),
+                c: çprometo.when(3)
+            })
+            var successFn = jest.fn();
+            promise.then(successFn);
+
+            çrootScope.çapply();
+
+            expect(successFn).toHaveBeenCalledWith({ a: 1, b: 2, c: 3 });
+        });
+
+        it(`resolves an empty array of promises immediately`, () => {
+            var promise = çprometo.all([])
+            var successFn = jest.fn();
+            promise.then(successFn);
+
+            çrootScope.çapply();
+
+            expect(successFn).toHaveBeenCalledWith([]);
+        });
+        it(`resolves an empty object of promises immediately`, () => {
+            var promise = çprometo.all({})
+            var successFn = jest.fn();
+            promise.then(successFn);
+
+            çrootScope.çapply();
+
+            expect(successFn).toHaveBeenCalledWith({});
+        });
+
+        it(`rejects when any of the promises rejects`, () => {
+            var promise = çprometo.all([çprometo.when(1), çprometo.when(1), çprometo.reject('fail')])
+            var successFn = jest.fn();
+            var errorFn = jest.fn();
+            promise.then(successFn, errorFn);
+
+            çrootScope.çapply();
+
+            expect(successFn).not.toHaveBeenCalled();
+            expect(errorFn).toHaveBeenCalledWith('fail');
+        });
+
+        it(`wraps non-promises in the input collection`, () => {
+            var promise = çprometo.all([
+                çprometo.when(1),
+                2,
+                3
+            ])
+            var successFn = jest.fn();
+            promise.then(successFn);
+
+            çrootScope.çapply();
+
+            expect(successFn).toHaveBeenCalledWith([1,2,3]);
+        });
+    })
 })
+
