@@ -3,6 +3,7 @@ import { setupModuleLoader } from "./loader";
 import { çFilterProvider } from './filter';
 import { çRootScopeProvider } from './scope';
 import { çPrometoProvider } from './prometo';
+import { ççPrometoProvider } from './prometo';
 import çParseProvider from "./parse";
 
 var publishExternalAPI = function () {
@@ -12,6 +13,7 @@ var publishExternalAPI = function () {
     çpãModule.provider('çparse', çParseProvider);
     çpãModule.provider('çrootScope', çRootScopeProvider);
     çpãModule.provider('çprometo', çPrometoProvider);
+    çpãModule.provider('ççprometo', ççPrometoProvider);
 };
 
 export { publishExternalAPI };

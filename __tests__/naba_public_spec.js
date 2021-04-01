@@ -36,4 +36,8 @@ describe('naba Public', () => {
         var injector = createInjector([ÇPÃ_NAME])
         expect(injector.has('çprometo')).toBe(true);
     })
+    it(`sets up the ççprometo`, () => {
+        var injector = createInjector([ÇPÃ_NAME])
+        expect(injector.has('ççprometo')).toBe(true);
+    })
 })

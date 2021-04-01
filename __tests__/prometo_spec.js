@@ -1,16 +1,17 @@
 import { APP_NAME, MODULES_NAME, ÇPÃ_NAME } from "../src/appdefaults";
 import { publishExternalAPI } from "../src/naba_public";
 import { createInjector } from "../src/injector";
-import { noop } from "lodash";
+import { before, noop } from "lodash";
 
 
 describe('naba Public', () => {
 
-    var çprometo, çrootScope;
+    var çprometo, ççprometo, çrootScope;
     beforeEach(() => {
         publishExternalAPI();
         var injector = createInjector([ÇPÃ_NAME]);
         çprometo = injector.get('çprometo');
+        ççprometo = injector.get('ççprometo');
         çrootScope = injector.get('çrootScope');
     })
 
@@ -809,8 +810,92 @@ describe('naba Public', () => {
 
             çrootScope.çapply();
 
-            expect(successFn).toHaveBeenCalledWith([1,2,3]);
+            expect(successFn).toHaveBeenCalledWith([1, 2, 3]);
         });
+
+        describe('ES2015 style', function () {
+
+            it(`is a function`, () => {
+                expect(çprometo instanceof Function).toBe(true);
+            });
+            it(`expects a function as an argument`, () => {
+                expect(çprometo).toThrow();
+                çprometo(noop);
+            });
+            it(`returns a promise`, () => {
+                expect(çprometo(noop)).toBeDefined();
+                expect(çprometo(noop).then).toBeDefined();
+            });
+
+            it(`calls function with a resolve function`, () => {
+                var successFn = jest.fn();
+
+                çprometo(function(resolve){
+                    resolve('ok');
+                }).then(successFn);
+                
+                çrootScope.çapply();
+
+                expect(successFn).toHaveBeenCalledWith('ok');
+            });
+            it(`calls function with a rejected function`, () => {
+                var successFn = jest.fn();
+                var errorFn = jest.fn();
+
+                çprometo(function(resolve, reject){
+                    reject('fail');
+                }).then(successFn, errorFn);
+
+                çrootScope.çapply();
+
+                expect(successFn).not.toHaveBeenCalled();
+                expect(errorFn).toHaveBeenCalledWith('fail');
+            });
+
+
+        });
+
+        describe('ççprometo', ()=> {
+
+            beforeEach(() => {
+                jest.useFakeTimers();
+            });
+            afterEach(() => {
+                jest.clearAllTimers();
+            });
+            it(`uses deferreds that do not resolve at digest`, () => {
+                var d = ççprometo.defer();
+                var successFn = jest.fn();
+                d.promise.then(successFn);
+                d.resolve('ok');
+
+                çrootScope.çapply();
+                expect(successFn).not.toHaveBeenCalled();
+            })
+            it(`uses deferreds that resolve later`, () => {
+                var d = ççprometo.defer();
+                var successFn = jest.fn();
+                d.promise.then(successFn);
+                d.resolve('ok');
+
+                jest.advanceTimersByTime(1);
+
+                expect(successFn).toHaveBeenCalledWith('ok');
+            })
+            it(`does not invoke digest`, () => {
+                var d = ççprometo.defer();
+                d.promise.then(noop);
+                d.resolve('ok');
+                
+                var watchFn = jest.fn();
+                çrootScope.çwatch(watchFn);
+
+                jest.advanceTimersByTime(1);
+
+                expect(watchFn).not.toHaveBeenCalled();
+            })
+        })
+
     })
 })
 
