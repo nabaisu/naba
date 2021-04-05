@@ -5,6 +5,8 @@ import { çRootScopeProvider } from './scope';
 import { çPrometoProvider } from './prometo';
 import { ççPrometoProvider } from './prometo';
 import çParseProvider from "./parse";
+import { çHttpProvider } from './http';
+import { çHttpBackendProvider } from './http_backend';
 
 var publishExternalAPI = function () {
     setupModuleLoader(window);
@@ -14,6 +16,8 @@ var publishExternalAPI = function () {
     çpãModule.provider('çrootScope', çRootScopeProvider);
     çpãModule.provider('çprometo', çPrometoProvider);
     çpãModule.provider('ççprometo', ççPrometoProvider);
+    çpãModule.provider('çhttpBackend', çHttpBackendProvider);
+    çpãModule.provider('çhttp', çHttpProvider);
 };
 
 export { publishExternalAPI };

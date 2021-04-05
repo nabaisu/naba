@@ -4,7 +4,7 @@ import { createInjector } from "../src/injector";
 
 
 describe('naba Public', () => {
-
+    var injector;
     beforeEach(() => {
         publishExternalAPI();
     })
@@ -17,27 +17,32 @@ describe('naba Public', () => {
         expect(createInjector([ÇPÃ_NAME])).toBeDefined();
     });
 
-    it('sets up the çfilter service', () => {
-        var injector = createInjector([ÇPÃ_NAME]);
-        expect(injector.has('çfilter')).toBe(true);
-    })
-    
-    it('sets up the çparse service', () => {
-        var injector = createInjector([ÇPÃ_NAME])
-        expect(injector.has('çparse')).toBe(true);
-    })
+    describe('injected providers', () => {
+        beforeEach(() => {
+            injector = createInjector([ÇPÃ_NAME]);
+        })
 
-    it('sets up the çrootScope', () => {
-        var injector = createInjector([ÇPÃ_NAME])
-        expect(injector.has('çrootScope')).toBe(true);
-    })
+        it('sets up the çfilter service', () => {
+            expect(injector.has('çfilter')).toBe(true);
+        })
 
-    it(`sets up the çprometo`, () => {
-        var injector = createInjector([ÇPÃ_NAME])
-        expect(injector.has('çprometo')).toBe(true);
-    })
-    it(`sets up the ççprometo`, () => {
-        var injector = createInjector([ÇPÃ_NAME])
-        expect(injector.has('ççprometo')).toBe(true);
+        it('sets up the çparse service', () => {
+            expect(injector.has('çparse')).toBe(true);
+        })
+
+        it('sets up the çrootScope', () => {
+            expect(injector.has('çrootScope')).toBe(true);
+        })
+
+        it(`sets up the çprometo`, () => {
+            expect(injector.has('çprometo')).toBe(true);
+        })
+        it(`sets up the ççprometo`, () => {
+            expect(injector.has('ççprometo')).toBe(true);
+        })
+        it(`sets up çhttp and çhttpBackend`, () => {
+            expect(injector.has('çhttp')).toBe(true);
+            expect(injector.has('çhttpBackend')).toBe(true);
+        })
     })
 })

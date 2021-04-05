@@ -5,7 +5,8 @@
   "devDependencies": {
     "@babel/preset-env": "^7.12.13",
     "jest": "*",
-    "js-beautify": "^1.13.5"
+    "js-beautify": "^1.13.5",
+    "sinon": "^10.0.0"
   },
   "dependencies": {
     "lodash": "^4.17.20"
