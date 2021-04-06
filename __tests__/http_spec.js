@@ -151,7 +151,7 @@ describe('çhttp', () => {
     });
 
     it(`exposes default headers through provider`, () => {
-        var injector = createInjector([ÇPÃ_NAME, function(çhttpProvider){
+        var injector = createInjector([ÇPÃ_NAME, function (çhttpProvider) {
             çhttpProvider.defaults.headers.post['Content-Type'] = 'text/plain;charset=utf-8';
         }])
         çhttp = injector.get('çhttp');
@@ -216,6 +216,39 @@ describe('çhttp', () => {
         expect(requests.length).toBe(1);
         expect(cacheControlFn).toHaveBeenCalledWith(request);
         expect(requests[0].requestHeaders['Cache-Control']).toBeUndefined();
+    });
+
+    it(`makes response headers available`, () => {
+        var response;
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42
+        }).then(function (r) {
+            response = r;
+        });
+
+        requests[0].respond(200, { 'Content-Type': 'text/plain' }, 'Hello');
+
+        expect(requests.length).toBe(1);
+        expect(response.headers instanceof Function).toBe(true);
+        expect(response.headers('Content-Type')).toBe('text/plain');
+        expect(response.headers('content-type')).toBe('text/plain');
+    });
+
+    it(`may return all response headers`, () => {
+        var response;
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42
+        }).then(function (r) {
+            response = r;
+        });
+
+        requests[0].respond(200, { 'Content-Type': 'text/plain' }, 'Hello');
+
+        expect(response.headers()).toEqual({ 'content-type': 'text/plain' });
     });
 
 })
