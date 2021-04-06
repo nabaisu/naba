@@ -5,7 +5,7 @@ function çHttpBackendProvider() {
         return function (method, url, post, callback, headers) {
             var xhr = new window.XMLHttpRequest();
             xhr.open(method, url, true);
-            forEach(headers, function(value, key){
+            forEach(headers, function (value, key) {
                 xhr.setRequestHeader(key, value);
             })
             xhr.send(post || null);
@@ -14,9 +14,14 @@ function çHttpBackendProvider() {
                     xhr.response :
                     xhr.responseText;
                 var statusText = xhr.statusText || '';
-                callback(xhr.status, response, statusText);
+                callback(
+                    xhr.status,
+                    response,
+                    xhr.getAllResponseHeaders(),
+                    statusText
+                );
             }
-            xhr.onerror = function() {
+            xhr.onerror = function () {
                 callback(-1, null, '');
             }
         }

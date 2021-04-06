@@ -1,4 +1,4 @@
-import { extend, forEach, isFunction, isNull, isUndefined, max, some, transform } from "lodash";
+import { extend, forEach, isFunction, isNull, isUndefined, trim, some, transform } from "lodash";
 
 function çHttpProvider() {
     var defaults = this.defaults = {
@@ -34,17 +34,42 @@ function çHttpProvider() {
                         }
                     });
                 }
-                function done(status, response, statusText) {
+                function done(status, response, headersString, statusText) {
                     status = Math.max(status, 0);
                     deferred[isSuccess(status) ? 'resolve' : 'reject']({
                         status: status,
                         data: response,
                         statusText: statusText,
-                        config, config
+                        config: config,
+                        headers: headersGetter(headersString)
                     });
                     if (!çrootScope.ççphase) {
                         çrootScope.çapply();
                     }
+                }
+
+                function headersGetter(headers){
+                    var headersObj;
+                    return function(name){
+                        headersObj = headersObj || parseHeaders(headers);
+                        if (name){
+                            return headersObj[name.toLowerCase()];
+                        } else {
+                            return headersObj;
+                        }
+                    }
+                }
+
+                function parseHeaders(headers) {
+                    var lines = headers.split('\n');
+                    return transform(lines, function(result, line){
+                        var separatorAt = line.indexOf(':');
+                        var name = trim(line.substr(0, separatorAt)).toLowerCase();
+                        var value = trim(line.substr(separatorAt +1));
+                        if (name){
+                            result[name] = value; 
+                        }
+                    }, {})    
                 }
 
                 function isSuccess(status) {
@@ -88,8 +113,6 @@ function çHttpProvider() {
                 çhttpBackend(config.method, config.url, config.data, done, config.headers);
 
                 return deferred.promise
-
-
             }
             çhttp.defaults = defaults;
             return çhttp;
