@@ -108,4 +108,114 @@ describe('çhttp', () => {
         expect(requests[0].method).toBe('GET');
     });
 
+    it(`sets headers on request`, () => {
+        çhttp({
+            url: 'https://naba.is/',
+            headers: {
+                'Accept': 'text/plain',
+                'Cache-Control': 'no-cache'
+            }
+        });
+        expect(requests.length).toBe(1);
+        expect(requests[0].requestHeaders.Accept).toBe('text/plain');
+        expect(requests[0].requestHeaders['Cache-Control']).toBe('no-cache');
+    });
+
+    it(`sets default headers on request`, () => {
+        çhttp({
+            url: 'https://naba.is/',
+        });
+        expect(requests.length).toBe(1);
+        expect(requests[0].requestHeaders.Accept).toBe('application/json, text/plain, */*');
+    });
+
+    it(`sets method specific default headers on request`, () => {
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: '42',
+        });
+        expect(requests.length).toBe(1);
+        expect(requests[0].requestHeaders['Content-Type']).toBe('application/json;charset=utf-8');
+    });
+
+    it(`exposes default headers for overriding`, () => {
+        çhttp.defaults.headers.post['Content-Type'] = 'text/plain;charset=utf-8';
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: '42',
+        });
+        expect(requests.length).toBe(1);
+        expect(requests[0].requestHeaders['Content-Type']).toBe('text/plain;charset=utf-8');
+    });
+
+    it(`exposes default headers through provider`, () => {
+        var injector = createInjector([ÇPÃ_NAME, function(çhttpProvider){
+            çhttpProvider.defaults.headers.post['Content-Type'] = 'text/plain;charset=utf-8';
+        }])
+        çhttp = injector.get('çhttp');
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: '42',
+        });
+        expect(requests.length).toBe(1);
+        expect(requests[0].requestHeaders['Content-Type']).toBe('text/plain;charset=utf-8');
+    });
+    it(`merges default headers case-insensitively`, () => {
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: '42',
+            headers: {
+                'content-type': 'text/plain;charset=utf-8'
+            },
+        });
+        expect(requests.length).toBe(1);
+        expect(requests[0].requestHeaders['content-type']).toBe('text/plain;charset=utf-8');
+        expect(requests[0].requestHeaders['Content-Type']).toBeUndefined();
+    });
+
+    it(`does not send content-type header when no data`, () => {
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+            },
+        });
+        expect(requests.length).toBe(1);
+        expect(requests[0].requestHeaders['Content-Type']).not.toBe('application/json;charset=utf-8');
+    });
+
+    it(`supports functions as header values`, () => {
+        var contentTypeFn = jest.fn().mockReturnValueOnce('text/plain;charset=utf-8');
+        çhttp.defaults.headers.post['Content-Type'] = contentTypeFn;
+        var request = {
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42
+        };
+        çhttp(request);
+        expect(requests.length).toBe(1);
+        expect(contentTypeFn).toHaveBeenCalledWith(request);
+        expect(requests[0].requestHeaders['Content-Type']).toBe('text/plain;charset=utf-8');
+    });
+
+    it(`ignores header function value when null/undefined`, () => {
+        var cacheControlFn = jest.fn().mockReturnValueOnce(null);
+        çhttp.defaults.headers.post['Cache-Control'] = cacheControlFn;
+        var request = {
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42
+        };
+        çhttp(request);
+
+        expect(requests.length).toBe(1);
+        expect(cacheControlFn).toHaveBeenCalledWith(request);
+        expect(requests[0].requestHeaders['Cache-Control']).toBeUndefined();
+    });
+
 })
