@@ -251,4 +251,30 @@ describe('çhttp', () => {
         expect(response.headers()).toEqual({ 'content-type': 'text/plain' });
     });
 
+    it(`allows setting withCredentials`, () => {
+        var request = {
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42,
+            withCredentials: true
+        };
+        çhttp(request);
+
+        expect(requests[0].withCredentials).toBe(true);
+    });
+
+    it(`allows setting withCredentials from defaults`, () => {
+        var request = {
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42
+        };
+        çhttp.defaults.withCredentials = true;
+        çhttp(request);
+
+        expect(requests[0].withCredentials).toBe(true);
+    });
+
+
+
 })
