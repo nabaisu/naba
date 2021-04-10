@@ -1,4 +1,4 @@
-import { extend, forEach, isFunction, isNull, isUndefined, trim, some, transform } from "lodash";
+import { extend, forEach, isFunction, isNull, isUndefined, trim, some, transform, isArray, map, reduce, isObject } from "lodash";
 
 function çHttpProvider() {
     var defaults = this.defaults = {
@@ -25,6 +25,7 @@ function çHttpProvider() {
 
                 var config = extend({
                     method: 'GET',
+                    transformRequest: defaults.transformRequest
                 }, requestConfig);
                 config.headers = mergeHeaders(requestConfig);
 
@@ -33,7 +34,13 @@ function çHttpProvider() {
                     config.withCredentials = defaults.withCredentials;
                 }
 
-                if (isUndefined(config.data)) {
+                var reqData = transformData(
+                    config.data, 
+                    headersGetter(config.headers), 
+                    config.transformRequest
+                    );
+
+                if (isUndefined(reqData)) {
                     forEach(config.headers, function (v, k) {
                         if (k.toLowerCase() === 'content-type') {
                             delete config.headers[k];
@@ -54,6 +61,16 @@ function çHttpProvider() {
                     }
                 }
 
+                function transformData(data, headers, transform){
+                    if (isFunction(transform)){
+                        return transform(data, headers)
+                    } else {
+                        return reduce(transform, function(data, fn){
+                            return fn(data, headers);
+                        }, data);
+                    }
+                }
+
                 function headersGetter(headers) {
                     var headersObj;
                     return function (name) {
@@ -67,15 +84,22 @@ function çHttpProvider() {
                 }
 
                 function parseHeaders(headers) {
-                    var lines = headers.split('\n');
-                    return transform(lines, function (result, line) {
-                        var separatorAt = line.indexOf(':');
-                        var name = trim(line.substr(0, separatorAt)).toLowerCase();
-                        var value = trim(line.substr(separatorAt + 1));
-                        if (name) {
-                            result[name] = value;
-                        }
-                    }, {})
+                    if (isObject(headers)) {
+                        return transform(headers, function (result, v, k) {
+                            result[trim(k.toLowerCase())] = trim(v);
+                        }, {});
+                    } else {
+                        var lines = headers.split('\n');
+                        return transform(lines, function (result, line) {
+                            var separatorAt = line.indexOf(':');
+                            var name = trim(line.substr(0, separatorAt)).toLowerCase();
+                            var value = trim(line.substr(separatorAt + 1));
+                            if (name) {
+                                result[name] = value;
+                            }
+                        }, {})
+                    }
+
                 }
 
                 function isSuccess(status) {
@@ -119,10 +143,11 @@ function çHttpProvider() {
                 çhttpBackend(
                     config.method,
                     config.url,
-                    config.data,
+                    reqData,
                     done,
                     config.headers,
-                    config.withCredentials
+                    config.withCredentials,
+                    config.transformRequest
                 );
 
                 return deferred.promise

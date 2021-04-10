@@ -2,7 +2,7 @@ import { forEach } from "lodash";
 
 function çHttpBackendProvider() {
     this.çget = function () {
-        return function (method, url, post, callback, headers, withCredentials) {
+        return function (method, url, post, callback, headers, withCredentials, transformRequest) {
             var xhr = new window.XMLHttpRequest();
             xhr.open(method, url, true);
             forEach(headers, function (value, key) {

@@ -275,6 +275,70 @@ describe('çhttp', () => {
         expect(requests[0].withCredentials).toBe(true);
     });
 
+    it(`allows transforming requests with functions`, () => {
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42,
+            transformRequest: function (data) {
+                return '*' + data + '*';
+            }
+        });
+
+        expect(requests[0].requestBody).toBe('*42*');
+    });
+
+    it(`allows multiple requests transform functions`, () => {
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42,
+            transformRequest: [
+                function (data) {
+                    return '*' + data + '*';
+                },
+                function (data) {
+                    return '-' + data + '-';
+                },
+            ]
+        });
+
+        expect(requests[0].requestBody).toBe('-*42*-');
+    });
+    it(`allows settings transform in defaults`, () => {
+        çhttp.defaults.transformRequest = [function (data) {
+            return '*' + data + '*';
+        }];
+
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42,
+        });
+
+        expect(requests[0].requestBody).toBe('*42*');
+    });
+    it(`passes request headers getter to transforms`, () => {
+        çhttp.defaults.transformRequest = [function (data, headers) {
+            if (headers("Content-Type") === 'text/emphasized') {
+                return '*' + data + '*';
+            } else {
+                return data ;
+            }
+        }];
+
+        çhttp({
+            method: 'post',
+            url: 'https://naba.is/',
+            data: 42,
+            headers: {
+                'Content-Type': 'text/emphasized'
+            }
+        });
+
+        expect(requests[0].requestBody).toBe('*42*');
+    });
+
 
 
 })
